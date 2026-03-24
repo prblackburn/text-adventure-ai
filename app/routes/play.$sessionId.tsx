@@ -10,9 +10,9 @@ export const meta: MetaFunction = () => [{ title: "Play — Ashveil" }];
 
 export async function loader({ params, context }: LoaderFunctionArgs) {
   const { env } = context.cloudflare;
-  const session = await getSession(env.DB, params.sessionId!);
+  const session = await getSession(env.text_adventure_ai_db, params.sessionId!);
   if (!session) throw new Response("Session not found", { status: 404 });
-  const turns = await getTurns(env.DB, params.sessionId!);
+  const turns = await getTurns(env.text_adventure_ai_db, params.sessionId!);
   return { session, turns };
 }
 

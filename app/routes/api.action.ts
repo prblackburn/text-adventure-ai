@@ -15,10 +15,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   if (!input || !sessionId) return new Response("Bad request", { status: 400 });
 
-  const session = await getSession(env.DB, sessionId);
+  const session = await getSession(env.text_adventure_ai_db, sessionId);
   if (!session) return new Response("Session not found", { status: 404 });
 
-  const turns = await getTurns(env.DB, sessionId);
+  const turns = await getTurns(env.text_adventure_ai_db, sessionId);
   const seed = JSON.parse(session.world_seed) as WorldSeed;
   const beat = getBeat(session.current_beat);
   const intent = classifyIntent(input);
@@ -36,7 +36,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     aiResponse += chunk;
   });
 
-  await addTurn(env.DB, {
+  await addTurn(env.text_adventure_ai_db, {
     session_id: sessionId,
     player_input: input,
     ai_response: aiResponse,

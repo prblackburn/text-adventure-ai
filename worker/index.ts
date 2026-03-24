@@ -6,7 +6,7 @@ import { createRequestHandler } from "react-router";
 import * as build from "virtual:react-router/server-build";
 
 export interface Env {
-  DB: D1Database;
+  text_adventure_ai_db: D1Database;
   SESSION_CACHE: KVNamespace;
   ANTHROPIC_API_KEY: string;
 }

@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 export interface Env {
-  DB: D1Database;
+  text_adventure_ai_db: D1Database;
   SESSION_CACHE: KVNamespace;
   ANTHROPIC_API_KEY: string;
 }

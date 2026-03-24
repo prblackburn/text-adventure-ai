@@ -9,10 +9,10 @@ assets = { directory = "./build/client" }
 enabled = true
 
 [[d1_databases]]
-binding = "DB"
+binding = "text_adventure_ai_db"
 database_name = "text-adventure-ai-db"
-database_id = "placeholder-run-wrangler-d1-create"
+database_id = "6641a8dd-e4df-4ddf-8695-fbcb4cb1bcec"
 
 [[kv_namespaces]]
 binding = "SESSION_CACHE"
-id = "placeholder-run-wrangler-kv-namespace-create"
+id = "3b4e3445688245659813ca50d953ac21"

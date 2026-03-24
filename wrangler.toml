@@ -1,0 +1,18 @@
+name = "text-adventure-ai"
+main = "build/server/index.js"
+compatibility_date = "2026-03-10"
+compatibility_flags = ["nodejs_compat"]
+
+assets = { directory = "./build/client" }
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "text-adventure-ai-db"
+database_id = "placeholder-run-wrangler-d1-create"
+
+[[kv_namespaces]]
+binding = "SESSION_CACHE"
+id = "placeholder-run-wrangler-kv-namespace-create"

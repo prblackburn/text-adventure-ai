@@ -97,15 +97,10 @@ web_modules/
 .cache
 .parcel-cache
 
-# Next.js build output
+# React Router build output
 
-.next
+.react-router
 out
-
-# Nuxt.js build / generate output
-
-.nuxt
-dist
 
 # Gatsby files
 

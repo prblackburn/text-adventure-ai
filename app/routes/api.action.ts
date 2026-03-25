@@ -24,8 +24,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const formData = await request.formData();
   const input = (formData.get("input") as string | null)?.trim();
   const sessionId = formData.get("sessionId") as string | null;
+  const search = (formData.get("_search") as string | null) ?? "";
 
   if (!input || !sessionId) return new Response("Bad request", { status: 400 });
+
+  const playUrl = (path: string) => `${path}${search}`;
 
   const session = await getSession(env.text_adventure_ai_db, sessionId);
   if (!session) return new Response("Session not found", { status: 404 });
@@ -49,7 +52,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
       intent: intent.type,
       beat: beat.id,
     });
-    return redirect(`/play/${sessionId}`);
+    return redirect(playUrl(`/play/${sessionId}`));
   }
 
   // Cache lookup for generic examine/explore actions
@@ -65,7 +68,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
         beat: beat.id,
       });
       await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
-      return redirect(`/play/${sessionId}`);
+      return redirect(playUrl(`/play/${sessionId}`));
     }
   }
 
@@ -97,7 +100,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   });
   await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
 
-  return redirect(`/play/${sessionId}`);
+  return redirect(playUrl(`/play/${sessionId}`));
 }
 
 async function maybeAdvanceBeat(

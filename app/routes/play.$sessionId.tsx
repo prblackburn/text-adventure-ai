@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
 import { useLoaderData } from "react-router";
+import * as styles from "./play.$sessionId.css";
 import { getSession, getTurns } from "../lib/db";
 import { GameLog } from "../components/GameLog";
 import { InputBar } from "../components/InputBar";
@@ -37,7 +38,7 @@ export default function Play() {
   }));
 
   return (
-    <main className="play">
+    <main className={styles.play}>
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
       <GameLog entries={entries} />
       <InputBar sessionId={session.id} />

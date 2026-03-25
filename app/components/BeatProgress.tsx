@@ -1,4 +1,5 @@
 import type { Beat } from "../game/types";
+import * as styles from "./BeatProgress.css";
 
 interface Props {
   beats: Beat[];
@@ -7,9 +8,9 @@ interface Props {
 
 export function BeatProgress({ beats, currentBeat }: Props) {
   return (
-    <div className="beat-progress">
+    <div className={styles.beatProgress}>
       {beats.map((b) => (
-        <span key={b.id} className={b.id === currentBeat ? "current" : b.id < currentBeat ? "active" : "inactive"}>
+        <span key={b.id} className={b.id === currentBeat ? styles.current : b.id < currentBeat ? styles.active : styles.inactive}>
           {b.name}
         </span>
       ))}

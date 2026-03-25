@@ -1,4 +1,5 @@
 import { useLocation } from "react-router";
+import * as styles from "./InputBar.css";
 
 interface Props {
   sessionId: string;
@@ -8,7 +9,7 @@ interface Props {
 export function InputBar({ sessionId, disabled }: Props) {
   const { search } = useLocation();
   return (
-    <form method="post" action="/api/action" className="input-bar">
+    <form method="post" action="/api/action" className={styles.inputBar}>
       <input type="hidden" name="sessionId" value={sessionId} />
       {search && <input type="hidden" name="_search" value={search} />}
       <input

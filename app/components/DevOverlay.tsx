@@ -87,7 +87,7 @@ const S = {
     background: current ? "#f5c518" : active ? "#6a6a30" : "#2a2a12",
     flexShrink: 0,
   }),
-  bar: (pct: number) => ({
+  bar: (_pct: number) => ({
     flex: 1,
     height: "4px",
     background: "#1a1a0e",
@@ -172,6 +172,7 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
   const scene = rules?.scenes[currentBeat];
   const currentBeatDef = beats[currentBeat];
 
+  // eslint-disable-next-line react-hooks/purity
   const age = Math.round((Date.now() - createdAt) / 1000);
   const ageStr = age < 60 ? `${age}s` : age < 3600 ? `${Math.round(age / 60)}m` : `${Math.round(age / 3600)}h`;
 

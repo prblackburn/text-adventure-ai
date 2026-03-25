@@ -1,4 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
+/// <reference types="vite/client" />
 
 export interface Env {
   text_adventure_ai_db: D1Database;

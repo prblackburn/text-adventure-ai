@@ -8,7 +8,9 @@
     "build": "react-router build",
     "deploy": "npm run build && wrangler deploy",
     "start": "wrangler dev",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "typecheck": "tsc",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@react-router/cloudflare": "^7.0.0",
@@ -22,7 +24,10 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "typescript": "^5.5.2",
+    "typescript-eslint": "^8.57.2",
     "vite": "^6.0.0",
     "wrangler": "^4.76.0"
   }

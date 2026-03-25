@@ -144,6 +144,14 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 
 ---
 
+## Ideas for Next Sessions
+
+- **ElevenLabs audio** — TTS for NPC dialogue lines, plus ambient soundscapes and SFX keyed to theme and scene; investigate storing generated audio in Cloudflare R2 or KV for reuse, avoiding repeat API calls for identical content
+- **Inventory & information UI** — dedicated panel(s) for items and collected clues, rather than relying solely on prose responses
+- **Minimise LLM usage** — push as much as possible into hardcoded rules, classifiers, and deterministic logic; reserve the LLM for genuinely creative narrative moments to reduce token spend and keep responses fresher
+
+---
+
 ## Database Schema
 
 **sessions** — one row per game run (`id`, `world_seed` JSON, `current_beat`, `completed_conditions` JSON array, timestamps)

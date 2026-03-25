@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as styles from "./GameLog.css";
+import { useTypewriter } from "../hooks/useTypewriter";
 
 export interface GameLogEntry {
   id: number;
@@ -9,26 +10,63 @@ export interface GameLogEntry {
 
 interface Props {
   entries: GameLogEntry[];
+  sessionId: string;
 }
 
-export function GameLog({ entries }: Props) {
+function TypewriterEntry({
+  entry,
+  sessionId,
+  isLatest,
+}: {
+  entry: GameLogEntry;
+  sessionId: string;
+  isLatest: boolean;
+}) {
+  const isIntro = !entry.player;
+  const { displayed, done, skip } = useTypewriter(entry.ai, entry.id, sessionId, isLatest);
+  const paraRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!done) {
+      paraRef.current?.scrollIntoView({ block: "end", behavior: "instant" });
+    }
+  }, [displayed, done]);
+
+  return (
+    <div className={styles.entry}>
+      {entry.player && (
+        <p className={styles.playerInput}>
+          <em>&gt; {entry.player}</em>
+        </p>
+      )}
+      <p
+        ref={paraRef}
+        className={isIntro ? styles.introResponse : styles.aiResponse}
+        onClick={done ? undefined : skip}
+        style={done ? undefined : { cursor: "pointer" }}
+        title={done ? undefined : "Click to skip"}
+        suppressHydrationWarning
+      >
+        {displayed}
+        {!done && <span className={styles.cursor}>▌</span>}
+      </p>
+    </div>
+  );
+}
+
+export function GameLog({ entries, sessionId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries.length]);
 
+  const latestId = entries.at(-1)?.id;
+
   return (
     <div className={styles.gameLog}>
       {entries.map((e) => (
-        <div key={e.id} className={styles.entry}>
-          {e.player && (
-            <p className={styles.playerInput}>
-              <em>&gt; {e.player}</em>
-            </p>
-          )}
-          <p className={e.player ? styles.aiResponse : styles.introResponse}>{e.ai}</p>
-        </div>
+        <TypewriterEntry key={e.id} entry={e} sessionId={sessionId} isLatest={e.id === latestId} />
       ))}
       <div ref={bottomRef} />
     </div>

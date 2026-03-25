@@ -70,7 +70,7 @@ export default function Play() {
   return (
     <main className={styles.play}>
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
-      <GameLog entries={entries} />
+      <GameLog entries={entries} sessionId={session.id} />
       <InputBar sessionId={session.id} />
       {devMode && (
         <DevOverlay

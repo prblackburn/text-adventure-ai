@@ -1,4 +1,9 @@
-import { globalStyle, style } from "@vanilla-extract/css";
+import { globalStyle, keyframes, style } from "@vanilla-extract/css";
+
+const blink = keyframes({
+	"0%, 100%": { opacity: 1 },
+	"50%": { opacity: 0 },
+});
 
 export const gameLog = style({
 	flex: 1,
@@ -42,4 +47,10 @@ export const introResponse = style({
 	marginBottom: "2rem",
 	borderLeft: "2px solid #3a3520",
 	paddingLeft: "0.75rem",
+});
+
+export const cursor = style({
+	display: "inline-block",
+	color: "#a89e56",
+	animation: `${blink} 0.7s step-end infinite`,
 });

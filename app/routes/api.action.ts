@@ -1,13 +1,15 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { getSession, getTurns, addTurn } from "../lib/db";
+import { getSession, getTurns, addTurn, updateSessionBeat } from "../lib/db";
 import { classifyIntent } from "../game/classifier";
 import { buildSystemPrompt, buildUserPrompt } from "../game/promptBuilder";
-import { getBeat } from "../game/beats";
+import { BEATS, getBeat } from "../game/beats";
 import { streamText } from "../lib/stream";
 import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
 import type { WorldSeed, BeatScene } from "../game/types";
+
+const TURNS_PER_BEAT = 3;
 
 function isEntityPresent(subject: string | undefined, scene: BeatScene): boolean {
   if (!subject) return true; // no subject — nothing to validate
@@ -62,6 +64,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
         intent: intent.type,
         beat: beat.id,
       });
+      await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
       return redirect(`/play/${sessionId}`);
     }
   }
@@ -92,6 +95,20 @@ export async function action({ request, context }: ActionFunctionArgs) {
     intent: intent.type,
     beat: beat.id,
   });
+  await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
 
   return redirect(`/play/${sessionId}`);
+}
+
+async function maybeAdvanceBeat(
+  db: D1Database,
+  sessionId: string,
+  currentBeatId: number,
+  priorTurns: { beat: number | null }[],
+): Promise<void> {
+  if (currentBeatId >= BEATS.length - 1) return;
+  const turnsAtBeat = priorTurns.filter((t) => t.beat === currentBeatId).length + 1; // +1 for the turn just saved
+  if (turnsAtBeat >= TURNS_PER_BEAT) {
+    await updateSessionBeat(db, sessionId, currentBeatId + 1);
+  }
 }

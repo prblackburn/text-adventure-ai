@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as styles from "./GameLog.css";
 import { useTypewriter } from "../hooks/useTypewriter";
 
@@ -20,26 +20,18 @@ function TypewriterEntry({
   entry: GameLogEntry;
   sessionId: string;
 }) {
-  const [isNew] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const key = `tw:${sessionId}`;
-    const seen = Number(sessionStorage.getItem(key) ?? 0);
-    if (entry.id > seen) {
-      sessionStorage.setItem(key, String(entry.id));
-      return true;
-    }
-    return false;
-  });
-
-  const { displayed, done, skip } = useTypewriter(entry.ai, isNew);
+  const isIntro = !entry.player;
+  const { displayed, done, skip } = useTypewriter(entry.ai, entry.id, sessionId);
 
   return (
     <div className={styles.entry}>
-      <p className={styles.playerInput}>
-        <em>&gt; {entry.player}</em>
-      </p>
+      {entry.player && (
+        <p className={styles.playerInput}>
+          <em>&gt; {entry.player}</em>
+        </p>
+      )}
       <p
-        className={styles.aiResponse}
+        className={isIntro ? styles.introResponse : styles.aiResponse}
         onClick={done ? undefined : skip}
         style={done ? undefined : { cursor: "pointer" }}
         title={done ? undefined : "Click to skip"}

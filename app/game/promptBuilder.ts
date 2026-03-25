@@ -11,8 +11,8 @@ export function buildSystemPrompt(seed: WorldSeed, beat: Beat): string {
   return `You are a text adventure game narrator. Setting: ${seed.setting}.
 The player is: ${seed.protagonist}.
 Current narrative beat: ${beat.name} — ${beat.description}.
-Respond in second person, present tense. Keep responses to 2-3 paragraphs. Be evocative and atmospheric.
-Theme: ${seed.theme}. Always end your response with a subtle prompt for what might happen next.`;
+Respond in second person, present tense. Keep responses to 2-4 sentences maximum — short, punchy, atmospheric.
+Theme: ${seed.theme}. End with one brief question or cue for the player's next action.`;
 }
 
 export function buildUserPrompt(ctx: PromptContext): string {

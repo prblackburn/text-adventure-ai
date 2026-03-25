@@ -1,6 +1,6 @@
 import type { Intent, IntentType } from "./types";
 
-const INTENT_PATTERNS: Record<Exclude<IntentType, "other">, string[]> = {
+const INTENT_PATTERNS: Record<Exclude<IntentType, "other" | "intro">, string[]> = {
   explore: ["go", "walk", "move", "travel", "head", "explore", "navigate", "run"],
   interact: ["take", "grab", "pick", "push", "pull", "open", "close", "touch"],
   combat: ["attack", "fight", "hit", "strike", "shoot", "kill", "stab", "slash"],

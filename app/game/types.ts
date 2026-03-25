@@ -27,11 +27,18 @@ export interface CharacterDef {
   ignorantOf: string[];
 }
 
+export interface CompletionCondition {
+  id: string;
+  description: string;
+  possibleMethods: string[];
+}
+
 export interface BeatScene {
   items: string[];
   characters: CharacterDef[];
   exits: string[];
   constraints: string[];
+  completionConditions: CompletionCondition[];
 }
 
 export interface WorldRules {

@@ -6,11 +6,12 @@ const CACHEABLE_INTENTS = new Set(["examine", "explore"]);
 // Subjects that indicate the player is looking at the room/area in general.
 const GENERIC_SUBJECTS = new Set(["room", "area", "surroundings", "around", "here", "place", "space", ""]);
 
-export function buildCacheKey(intent: Intent): string | null {
+export function buildCacheKey(intent: Intent, ruleIndex: number | undefined): string | null {
   if (!CACHEABLE_INTENTS.has(intent.type)) return null;
   const subject = (intent.subject ?? "").toLowerCase().trim().split(/\s+/)[0] ?? "";
   if (!GENERIC_SUBJECTS.has(subject)) return null;
-  return `${intent.type}:${subject || "room"}`;
+  const theme = ruleIndex ?? "default";
+  return `${theme}:${intent.type}:${subject || "room"}`;
 }
 
 export async function getCachedResponse(

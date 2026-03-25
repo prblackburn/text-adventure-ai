@@ -2,6 +2,7 @@ export interface Session {
   id: string;
   world_seed: string;
   current_beat: number;
+  completed_conditions: string;
   created_at: number;
   updated_at: number;
 }
@@ -42,6 +43,14 @@ export async function addTurn(db: D1Database, turn: Omit<Turn, "id" | "created_a
   await db
     .prepare("INSERT INTO turns (session_id, player_input, ai_response, intent, beat, created_at) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(turn.session_id, turn.player_input, turn.ai_response, turn.intent, turn.beat, now)
+    .run();
+}
+
+export async function updateCompletedConditions(db: D1Database, sessionId: string, conditionIds: string[]): Promise<void> {
+  const now = Date.now();
+  await db
+    .prepare("UPDATE sessions SET completed_conditions = ?, updated_at = ? WHERE id = ?")
+    .bind(JSON.stringify(conditionIds), now, sessionId)
     .run();
 }
 

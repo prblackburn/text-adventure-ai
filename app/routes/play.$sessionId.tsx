@@ -53,11 +53,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
   const devMode = url.searchParams.has("dev");
   const devRules = devMode ? rules : undefined;
 
-  return { session, turns, seed, ruleIndex, rules: devRules, devMode };
+  const completedConditions: string[] = JSON.parse(session.completed_conditions ?? "[]");
+
+  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions };
 }
 
 export default function Play() {
-  const { session, turns, seed, ruleIndex, rules, devMode } = useLoaderData<typeof loader>();
+  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions } = useLoaderData<typeof loader>();
 
   const entries = turns.map((t) => ({
     id: t.id,
@@ -80,6 +82,7 @@ export default function Play() {
           turns={turns}
           rules={rules}
           createdAt={session.created_at}
+          completedConditions={completedConditions}
         />
       )}
     </main>

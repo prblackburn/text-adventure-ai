@@ -10,7 +10,7 @@ export async function generateText(
   apiKey: string,
   messages: Message[],
   system: string,
-  maxTokens = 150
+  maxTokens = 200
 ): Promise<string> {
   return streamText(apiKey, messages, system, () => {}, maxTokens);
 }
@@ -20,7 +20,7 @@ export async function streamText(
   messages: Message[],
   system: string,
   onChunk: (text: string) => void,
-  maxTokens = 150
+  maxTokens = 200
 ): Promise<string> {
   const response = await fetch(GROQ_API_URL, {
     method: "POST",

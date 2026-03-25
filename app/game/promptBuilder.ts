@@ -27,6 +27,23 @@ function buildRulesSection(rules: WorldRules, beatId: number): string {
     if (scene.exits.length)
       lines.push(`Available exits: ${scene.exits.join(", ")}.`);
     for (const c of scene.constraints) lines.push(`- ${c}`);
+
+    if (scene.completionConditions.length) {
+      lines.push("\nCOMPLETION CONDITIONS — enforce these strictly. These are the ONLY ways the story can advance:");
+      for (const cond of scene.completionConditions) {
+        lines.push(`- [${cond.id}] ${cond.description}`);
+        lines.push(`  Valid methods ONLY: ${cond.possibleMethods.join(" / ")}`);
+      }
+      lines.push(
+        "\nIF the player's action in this turn genuinely and concretely accomplishes a condition above " +
+        "(not merely claiming to — they must actually perform the required steps in a believable way), " +
+        "append EXACTLY the following on its own line at the very end of your response: " +
+        '[CONDITIONS_MET: ["condition_id"]]',
+      );
+      lines.push("Replace condition_id with the exact id(s) from above. Include multiple ids as a JSON array if needed.");
+      lines.push("If nothing is completed this turn, omit the tag entirely.");
+      lines.push("NEVER allow a player to complete a condition by simply declaring they have done it.");
+    }
   }
 
   return lines.join("\n");

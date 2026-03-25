@@ -22,10 +22,12 @@ export function GameLog({ entries }: Props) {
     <div className={styles.gameLog}>
       {entries.map((e) => (
         <div key={e.id} className={styles.entry}>
-          <p className={styles.playerInput}>
-            <em>&gt; {e.player}</em>
-          </p>
-          <p className={styles.aiResponse}>{e.ai}</p>
+          {e.player && (
+            <p className={styles.playerInput}>
+              <em>&gt; {e.player}</em>
+            </p>
+          )}
+          <p className={e.player ? styles.aiResponse : styles.introResponse}>{e.ai}</p>
         </div>
       ))}
       <div ref={bottomRef} />

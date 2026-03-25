@@ -34,3 +34,12 @@ export const aiResponse = style({
 	color: "#a89e56",
 	lineHeight: 1.75,
 });
+
+export const introResponse = style({
+	color: "#c8b96e",
+	lineHeight: 1.85,
+	fontStyle: "italic",
+	marginBottom: "2rem",
+	borderLeft: "2px solid #3a3520",
+	paddingLeft: "0.75rem",
+});

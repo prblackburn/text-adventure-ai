@@ -89,7 +89,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const userPrompt = buildUserPrompt({
     seed,
     beat,
-    history: turns.map((t) => ({ player: t.player_input, ai: t.ai_response })),
+    history: turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response })),
     intent,
   });
 

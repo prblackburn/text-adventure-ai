@@ -11,9 +11,8 @@ interface Props {
   turns: Turn[];
   rules: WorldRules | undefined;
   createdAt: number;
+  completedConditions: string[];
 }
-
-const TURNS_PER_BEAT = 3;
 
 const S = {
   toggle: {
@@ -140,7 +139,7 @@ function intentColor(intent: string): string {
   return map[intent] ?? "#5a5a5a";
 }
 
-export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt }: Props) {
+export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt, completedConditions }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -155,21 +154,17 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
   }, []);
 
   // --- derived stats ---
-  const turnsPerBeat: Record<number, number> = {};
-  for (const t of turns) {
-    if (t.beat !== null) turnsPerBeat[t.beat] = (turnsPerBeat[t.beat] ?? 0) + 1;
-  }
-  const turnsAtCurrent = turnsPerBeat[currentBeat] ?? 0;
-  const progressPct = Math.min((turnsAtCurrent / TURNS_PER_BEAT) * 100, 100);
-  const remaining = Math.max(TURNS_PER_BEAT - turnsAtCurrent, 0);
   const isLastBeat = currentBeat >= beats.length - 1;
+  const scene = rules?.scenes[currentBeat];
+  const requiredConditions = scene?.completionConditions ?? [];
+  const metCount = requiredConditions.filter((c) => completedConditions.includes(c.id)).length;
+  const progressPct = requiredConditions.length > 0 ? Math.round((metCount / requiredConditions.length) * 100) : 100;
 
   const intentCounts: Record<string, number> = {};
   for (const t of turns) {
     if (t.intent) intentCounts[t.intent] = (intentCounts[t.intent] ?? 0) + 1;
   }
 
-  const scene = rules?.scenes[currentBeat];
   const currentBeatDef = beats[currentBeat];
 
   // eslint-disable-next-line react-hooks/purity
@@ -236,29 +231,38 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
           <div style={S.section}>
             <div style={S.heading}>Beat Progress</div>
             {beats.map((b) => {
-              const count = turnsPerBeat[b.id] ?? 0;
               const isCurrent = b.id === currentBeat;
               const isDone = b.id < currentBeat;
               return (
                 <div key={b.id} style={S.beatRow}>
                   <div style={S.beatDot(isDone || isCurrent, isCurrent)} />
-                  <span style={{ color: isCurrent ? "#f5c518" : isDone ? "#7a7a40" : "#2a2a20", minWidth: "100px" }}>
+                  <span style={{ color: isCurrent ? "#f5c518" : isDone ? "#7a7a40" : "#2a2a20" }}>
                     {b.name}
                   </span>
-                  <span style={{ color: "#5a5a28", marginLeft: "auto" }}>{count}/{TURNS_PER_BEAT}</span>
+                  {isDone && <span style={{ color: "#6a6a30", marginLeft: "auto" }}>✓</span>}
                 </div>
               );
             })}
-            {!isLastBeat && (
+            {!isLastBeat && requiredConditions.length > 0 && (
               <div style={{ marginTop: "8px" }}>
                 <div style={{ ...S.row, marginBottom: "4px" }}>
-                  <span style={S.label}>Next beat in</span>
-                  <span style={{ color: remaining === 0 ? "#f5c518" : "#c8b84a" }}>
-                    {remaining === 0 ? "advancing…" : `${remaining} turn${remaining !== 1 ? "s" : ""}`}
+                  <span style={S.label}>Objectives</span>
+                  <span style={{ color: metCount === requiredConditions.length ? "#f5c518" : "#c8b84a" }}>
+                    {metCount}/{requiredConditions.length}
                   </span>
                 </div>
                 <div style={S.bar(progressPct)}>
                   <div style={S.barFill(progressPct)} />
+                </div>
+                <div style={{ marginTop: "6px" }}>
+                  {requiredConditions.map((c) => {
+                    const met = completedConditions.includes(c.id);
+                    return (
+                      <div key={c.id} style={{ ...S.dimText, marginBottom: "3px", color: met ? "#6a9a4a" : "#5a5a28" }}>
+                        {met ? "✓" : "○"} {c.description}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

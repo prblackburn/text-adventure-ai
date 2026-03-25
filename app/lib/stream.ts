@@ -20,7 +20,7 @@ export async function streamText(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 150,
+      max_tokens: 200,
       stream: true,
       messages: [{ role: "system", content: system }, ...messages],
     }),

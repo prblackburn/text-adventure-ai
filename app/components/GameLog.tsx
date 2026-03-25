@@ -24,6 +24,13 @@ function TypewriterEntry({
 }) {
   const isIntro = !entry.player;
   const { displayed, done, skip } = useTypewriter(entry.ai, entry.id, sessionId, isLatest);
+  const paraRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!done) {
+      paraRef.current?.scrollIntoView({ block: "end", behavior: "instant" });
+    }
+  }, [displayed, done]);
 
   return (
     <div className={styles.entry}>
@@ -33,6 +40,7 @@ function TypewriterEntry({
         </p>
       )}
       <p
+        ref={paraRef}
         className={isIntro ? styles.introResponse : styles.aiResponse}
         onClick={done ? undefined : skip}
         style={done ? undefined : { cursor: "pointer" }}

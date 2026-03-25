@@ -66,8 +66,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
-  // Cache lookup for generic examine/explore actions
-  const cacheKey = buildCacheKey(intent);
+  // Cache lookup for generic examine/explore actions (scoped per theme)
+  const cacheKey = buildCacheKey(intent, ruleIndex);
   if (cacheKey) {
     const cached = await getCachedResponse(env.text_adventure_ai_db, beat.id, cacheKey);
     if (cached) {

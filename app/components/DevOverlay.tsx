@@ -306,11 +306,31 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
                   </div>
                 )}
                 {scene.constraints.length > 0 && (
-                  <div>
+                  <div style={{ marginBottom: "6px" }}>
                     <div style={{ ...S.label, marginBottom: "3px" }}>Constraints</div>
                     {scene.constraints.map((c) => (
                       <div key={c} style={{ ...S.dimText, marginBottom: "2px" }}>— {c}</div>
                     ))}
+                  </div>
+                )}
+                {scene.completionConditions.length > 0 && (
+                  <div>
+                    <div style={{ ...S.label, marginBottom: "4px" }}>Objectives (required to advance)</div>
+                    {scene.completionConditions.map((c) => {
+                      const met = completedConditions.includes(c.id);
+                      return (
+                        <div key={c.id} style={{ marginBottom: "6px", paddingLeft: "6px", borderLeft: `2px solid ${met ? "#4a6a30" : "#2a2a12"}` }}>
+                          <div style={{ color: met ? "#6a9a4a" : "#c8b84a", marginBottom: "2px" }}>
+                            {met ? "✓ " : "○ "}{c.description}
+                          </div>
+                          <div style={S.dimText}>
+                            {c.possibleMethods.map((m, i) => (
+                              <div key={i} style={{ marginBottom: "1px" }}>· {m}</div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>

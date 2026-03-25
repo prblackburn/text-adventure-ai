@@ -35,6 +35,7 @@ function TypewriterEntry({
         onClick={done ? undefined : skip}
         style={done ? undefined : { cursor: "pointer" }}
         title={done ? undefined : "Click to skip"}
+        suppressHydrationWarning
       >
         {displayed}
         {!done && <span className={styles.cursor}>▌</span>}

@@ -2,30 +2,36 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const SPEED_MS = 18;
 
-export function useTypewriter(text: string, entryId: number, sessionId: string) {
-  const [displayed, setDisplayed] = useState(text);
-  const [done, setDone] = useState(true);
-  const skipRef = useRef<() => void>(() => {});
+function isNewEntry(key: string, entryId: number): boolean {
+  if (typeof window === "undefined") return false;
+  return entryId > Number(sessionStorage.getItem(key) ?? 0);
+}
 
+export function useTypewriter(text: string, entryId: number, sessionId: string) {
+  const key = `tw:${sessionId}`;
+
+  // Read sessionStorage synchronously so the initial render starts empty for
+  // new entries — no flash of full text before animation begins.
+  // Server always returns full text; suppressHydrationWarning on the element
+  // handles the server/client mismatch for new entries.
+  const [displayed, setDisplayed] = useState(() =>
+    isNewEntry(key, entryId) ? "" : text
+  );
+  const [done, setDone] = useState(() => !isNewEntry(key, entryId));
+
+  const skipRef = useRef<() => void>(() => {});
   const skip = useCallback(() => skipRef.current(), []);
 
   useEffect(() => {
-    const key = `tw:${sessionId}`;
-    const seen = Number(sessionStorage.getItem(key) ?? 0);
-    if (entryId <= seen) return;
+    if (!isNewEntry(key, entryId)) return;
 
     sessionStorage.setItem(key, String(entryId));
 
     let cancelled = false;
+    let i = 0;
 
-    // Use rAF so setState is called inside an async callback, not directly in
-    // the effect body — satisfies react-hooks/set-state-in-effect.
-    // rAF also only fires in the browser, so this is SSR-safe.
     const rafId = requestAnimationFrame(() => {
       if (cancelled) return;
-      let i = 0;
-      setDisplayed("");
-      setDone(false);
 
       const intervalId = setInterval(() => {
         i++;
@@ -48,7 +54,7 @@ export function useTypewriter(text: string, entryId: number, sessionId: string) 
       cancelAnimationFrame(rafId);
       skipRef.current();
     };
-  }, [entryId, sessionId, text]);
+  }, [entryId, key, text]);
 
   return { displayed, done, skip };
 }

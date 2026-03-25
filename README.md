@@ -49,7 +49,7 @@ Player Input → Intent Classifier → Entity Presence Check
 
 ```
 app/
-├── components/         # UI: BeatProgress, GameLog, InputBar
+├── components/         # UI: BeatProgress, DevOverlay, GameLog, InputBar
 ├── game/               # Core logic
 │   ├── beats.ts        # 5-beat story structure
 │   ├── classifier.ts   # Intent classification
@@ -66,6 +66,7 @@ app/
     ├── api.action.ts       # POST /api/action — main game loop
     ├── api.session.ts      # POST /api/session — create session
     └── play.$sessionId.tsx # Game UI page
+game.css                    # Retro terminal theme (gold on near-black, monospace)
 migrations/
 └── 0001_initial.sql    # sessions, turns, response_pool tables
 ```
@@ -97,12 +98,14 @@ Requires `GROQ_API_KEY` set as a Cloudflare Workers secret.
 - [x] D1 database: sessions, turn history, response pool
 - [x] Beat progress indicator UI
 - [x] Game transcript + player input UI
+- [x] Beat progression — advances every 3 substantive turns, capped at Resolution
+- [x] Developer overlay — `?dev` query param shows session info, world seed, scene details, intent breakdown; toggle with D key
+- [x] Retro terminal UI — dark gold-on-black aesthetic, auto-scrolling game log, beat bar with completed/current/future states
 
 ---
 
 ## What's Next
 
-- [ ] **Beat progression** — advance `current_beat` based on story milestones (currently stored but never updated)
 - [ ] **Inventory system** — track items picked up/dropped per session
 - [ ] **Character relationship state** — track NPC disposition toward player
 - [ ] **Branching endings** — multiple resolution paths per theme

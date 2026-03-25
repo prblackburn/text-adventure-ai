@@ -26,6 +26,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["door to the hallway", "window to the fire escape"],
         constraints: ["The office door is currently unlocked", "It is night and raining heavily outside"],
+        completionConditions: [
+          {
+            id: "noir_0_mara_reveals",
+            description: "Get Mara Voss to reveal the Blackwater Hotel and the blue envelope",
+            possibleMethods: [
+              "Ask Mara directly about her husband or what she needs help with",
+              "Examine the case file and ask Mara to explain it",
+              "Build enough trust by listening that Mara opens up about Emil",
+            ],
+          },
+        ],
       },
       1: {
         items: ["crumpled note", "city map", "loaded revolver"],
@@ -39,6 +50,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["back alley exit", "street door"],
         constraints: ["This is a back-room pawn shop, not open to the public"],
+        completionConditions: [
+          {
+            id: "noir_1_sal_info",
+            description: "Get Sal to give you the Blackwater Hotel layout and Emil Voss's whereabouts",
+            possibleMethods: [
+              "Pay Sal in cash or with something he values",
+              "Threaten Sal with knowledge of his criminal dealings",
+              "Trade information you have about Mara or the blue envelope",
+            ],
+          },
+        ],
       },
       2: {
         items: ["hotel key", "matchbook with address", "broken lock"],
@@ -52,6 +74,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["hotel corridor", "fire exit stairwell"],
         constraints: ["The hotel room door can be forced open", "Viktor is armed"],
+        completionConditions: [
+          {
+            id: "noir_2_emils_location",
+            description: "Discover Emil Voss's location from Viktor Crane or the hotel room",
+            possibleMethods: [
+              "Search the hotel room while Viktor is distracted or absent",
+              "Confront Viktor and find evidence of Emil's location among his belongings",
+              "Find and read the matchbook address",
+            ],
+          },
+        ],
       },
       3: {
         items: ["blue envelope", "incriminating ledger", "escape car keys"],
@@ -71,6 +104,26 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["window ledge", "only door (blocked by Viktor)"],
         constraints: ["You cannot leave without confronting Viktor", "The ledger is the key evidence"],
+        completionConditions: [
+          {
+            id: "noir_3_secure_ledger",
+            description: "Obtain the incriminating ledger as evidence",
+            possibleMethods: [
+              "Pick up or take the ledger from the room",
+              "Force Viktor away from it through combat or credible threat",
+              "Grab it while Viktor is distracted by Emil or by you",
+            ],
+          },
+          {
+            id: "noir_3_neutralize_viktor",
+            description: "Neutralize Viktor Crane so you and Emil can escape",
+            possibleMethods: [
+              "Physically overpower or disarm Viktor",
+              "Hold Viktor at gunpoint with the loaded revolver",
+              "Stall Viktor until the police arrive — you must explicitly wait or signal them",
+            ],
+          },
+        ],
       },
       4: {
         items: ["badge of the arresting officer", "your final invoice"],
@@ -84,6 +137,7 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["street — the case is closed"],
         constraints: ["The story is resolving — no new threats can emerge"],
+        completionConditions: [],
       },
     },
   },
@@ -105,6 +159,17 @@ export const RULES: WorldRules[] = [
           "The entrance has collapsed — there is no way back",
           "The torch will last roughly an hour",
         ],
+        completionConditions: [
+          {
+            id: "dungeon_0_follow_map",
+            description: "Use the crude map to navigate north into the dungeon",
+            possibleMethods: [
+              "Examine or read the map to understand the route ahead",
+              "Take the map and head north through the narrow passage",
+              "Use the map and torch together to plan a safe path forward",
+            ],
+          },
+        ],
       },
       1: {
         items: ["rusted portcullis lever", "scattered bones", "iron shield leaning on wall"],
@@ -118,6 +183,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["passage east", "iron door west (locked)", "back south"],
         constraints: ["The portcullis lever is stuck — it needs two people or a pry tool"],
+        completionConditions: [
+          {
+            id: "dungeon_1_open_iron_door",
+            description: "Open the locked iron door to progress west",
+            possibleMethods: [
+              "Recruit Grix's help to work the stuck portcullis lever together",
+              "Find a pry tool in the environment and force the lever alone",
+              "Trade with or convince Grix — he may know another method or have a key",
+            ],
+          },
+        ],
       },
       2: {
         items: ["cracked altar", "obsidian key", "pools of black water"],
@@ -134,6 +210,17 @@ export const RULES: WorldRules[] = [
           "The Warden will not allow passage without the obsidian key being presented",
           "The black water pools are cold but not dangerous",
         ],
+        completionConditions: [
+          {
+            id: "dungeon_2_present_key",
+            description: "Present the obsidian key to the Warden to gain passage",
+            possibleMethods: [
+              "Pick up the obsidian key from the altar or where it rests",
+              "Hold the obsidian key up and present it directly to the Warden",
+              "Place the obsidian key at the Warden's feet as a formal offering",
+            ],
+          },
+        ],
       },
       3: {
         items: ["the lost relic (a silver compass that points to truth)", "collapsed scaffolding", "ancient torch bracket"],
@@ -147,12 +234,32 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["only way out is back through the Warden"],
         constraints: ["The relic cannot be destroyed by mundane means", "You must get past the Warden to escape"],
+        completionConditions: [
+          {
+            id: "dungeon_3_take_relic",
+            description: "Claim the silver compass relic",
+            possibleMethods: [
+              "Pick up or take the relic from its resting place",
+              "Secure the relic while the Warden is occupied or disabled",
+            ],
+          },
+          {
+            id: "dungeon_3_bypass_warden",
+            description: "Get past the Warden with the relic in hand",
+            possibleMethods: [
+              "Present the obsidian key again — it may also pacify the Warden",
+              "Use the collapsed scaffolding to create a distraction or barrier",
+              "Fight or disable the Warden using physical force and the environment",
+            ],
+          },
+        ],
       },
       4: {
         items: ["the relic", "Grix's thank-you note (if Grix survived)"],
         characters: [],
         exits: ["rope climb to the surface — the dungeon is behind you"],
         constraints: ["The adventure is complete — no new enemies appear"],
+        completionConditions: [],
       },
     },
   },
@@ -178,6 +285,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["habitat corridor", "airlock (requires suit)", "comms room"],
         constraints: ["The outer airlock requires a pressure suit to use safely", "Power is at 60% — non-essential systems are dim"],
+        completionConditions: [
+          {
+            id: "scifi_0_get_briefing",
+            description: "Get Dr. Osei to fully brief you on the seismic anomaly and the downed array",
+            possibleMethods: [
+              "Ask Dr. Osei directly about the array or the anomaly",
+              "Examine the personal datapad and ask Dr. Osei to explain the readings",
+              "Express willingness to investigate and ask Dr. Osei where to start",
+            ],
+          },
+        ],
       },
       1: {
         items: ["pressure suit (one size)", "geological scanner", "crowbar"],
@@ -191,6 +309,25 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["north service tunnel", "back to habitat"],
         constraints: ["The service tunnel is pressurised — no suit needed inside"],
+        completionConditions: [
+          {
+            id: "scifi_1_suit_up",
+            description: "Acquire the pressure suit for outside access",
+            possibleMethods: [
+              "Take or put on the pressure suit",
+              "Ask Rover-7 where the suit is stored and retrieve it",
+            ],
+          },
+          {
+            id: "scifi_1_fault_code",
+            description: "Get the array's last known fault code from Rover-7",
+            possibleMethods: [
+              "Ask Rover-7 directly about the array fault",
+              "Query Rover-7 for its last diagnostic report",
+              "Examine the geological scanner alongside Rover-7's data",
+            ],
+          },
+        ],
       },
       2: {
         items: ["array access terminal (damaged)", "replacement relay coil", "frozen conduit"],
@@ -207,6 +344,17 @@ export const RULES: WorldRules[] = [
           "The relay coil must be installed before the array can restart",
           "The roof hatch is exposed to the outside — suit required",
         ],
+        completionConditions: [
+          {
+            id: "scifi_2_install_relay",
+            description: "Install the replacement relay coil to restart the array",
+            possibleMethods: [
+              "Take the relay coil and install it in the array access terminal",
+              "Use the crowbar to clear the frozen conduit, then install the coil",
+              "Follow Rover-7's repair instructions to fit the coil correctly",
+            ],
+          },
+        ],
       },
       3: {
         items: ["activated array terminal", "signal data (the incoming contact is not hostile — it's a rescue ship)"],
@@ -220,6 +368,17 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["back to colony", "roof observation point"],
         constraints: ["The rescue ship will arrive in 12 hours — you must signal back"],
+        completionConditions: [
+          {
+            id: "scifi_3_signal_rescue",
+            description: "Decode the incoming signal and transmit a response to the rescue ship",
+            possibleMethods: [
+              "Use the activated array terminal to read and respond to the signal",
+              "Ask Dr. Osei to help interpret and transmit the reply",
+              "Manually operate the terminal controls to send a confirmation signal",
+            ],
+          },
+        ],
       },
       4: {
         items: ["confirmed signal receipt", "colony manifest"],
@@ -233,6 +392,7 @@ export const RULES: WorldRules[] = [
         ],
         exits: ["landing pad — the rescue ship is inbound"],
         constraints: ["The story is resolving — the external threat has passed"],
+        completionConditions: [],
       },
     },
   },

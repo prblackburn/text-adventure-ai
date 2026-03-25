@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { getSession, getTurns, addTurn, updateSessionBeat } from "../lib/db";
+import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions } from "../lib/db";
 import { classifyIntent } from "../game/classifier";
 import { buildSystemPrompt, buildUserPrompt } from "../game/promptBuilder";
 import { BEATS, getBeat } from "../game/beats";
@@ -9,14 +9,23 @@ import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
 import type { WorldSeed, BeatScene } from "../game/types";
 
-const TURNS_PER_BEAT = 3;
-
 function isEntityPresent(subject: string | undefined, scene: BeatScene): boolean {
   if (!subject) return true; // no subject — nothing to validate
   const s = subject.toLowerCase();
   const inItems = scene.items.some((i) => i.toLowerCase().includes(s));
   const inChars = scene.characters.some((c) => c.name.toLowerCase().includes(s));
   return inItems || inChars;
+}
+
+function extractConditionsMet(response: string): { cleanResponse: string; conditionIds: string[] } {
+  const match = response.match(/\[CONDITIONS_MET:\s*(\[.*?\])\]\s*$/s);
+  if (!match) return { cleanResponse: response.trim(), conditionIds: [] };
+  try {
+    const ids = JSON.parse(match[1]) as string[];
+    return { cleanResponse: response.replace(match[0], "").trim(), conditionIds: ids };
+  } catch {
+    return { cleanResponse: response.trim(), conditionIds: [] };
+  }
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -42,6 +51,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const rules = ruleIndex !== undefined ? getRules(ruleIndex) : undefined;
   const scene: BeatScene | undefined = rules?.scenes[beat.id];
 
+  const existingCompleted: string[] = JSON.parse(session.completed_conditions ?? "[]");
+
   // Pre-flight: if the player targets an entity not present in this scene, skip LLM
   if (scene && intent.subject && !isEntityPresent(intent.subject, scene)) {
     const aiResponse = `There's no ${intent.subject} here.`;
@@ -55,8 +66,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
-  // Cache lookup for generic examine/explore actions
-  const cacheKey = buildCacheKey(intent);
+  // Cache lookup for generic examine/explore actions (scoped per theme)
+  const cacheKey = buildCacheKey(intent, ruleIndex);
   if (cacheKey) {
     const cached = await getCachedResponse(env.text_adventure_ai_db, beat.id, cacheKey);
     if (cached) {
@@ -67,7 +78,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
         intent: intent.type,
         beat: beat.id,
       });
-      await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
+      // Cached responses don't complete conditions — check advancement with existing state
+      await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
       return redirect(playUrl(`/play/${sessionId}`));
     }
   }
@@ -86,32 +98,47 @@ export async function action({ request, context }: ActionFunctionArgs) {
     aiResponse += chunk;
   });
 
+  // Extract and strip any conditions-met marker from the LLM response
+  const { cleanResponse, conditionIds } = extractConditionsMet(aiResponse);
+
+  // Merge newly completed conditions with existing ones
+  const allCompleted = conditionIds.length > 0
+    ? [...new Set([...existingCompleted, ...conditionIds])]
+    : existingCompleted;
+
+  if (conditionIds.length > 0) {
+    await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
+  }
+
   // Store cacheable responses for future players
   if (cacheKey) {
-    await setCachedResponse(env.text_adventure_ai_db, beat.id, cacheKey, aiResponse);
+    await setCachedResponse(env.text_adventure_ai_db, beat.id, cacheKey, cleanResponse);
   }
 
   await addTurn(env.text_adventure_ai_db, {
     session_id: sessionId,
     player_input: input,
-    ai_response: aiResponse,
+    ai_response: cleanResponse,
     intent: intent.type,
     beat: beat.id,
   });
-  await maybeAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, turns);
+  await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
 
   return redirect(playUrl(`/play/${sessionId}`));
 }
 
-async function maybeAdvanceBeat(
+async function checkAndAdvanceBeat(
   db: D1Database,
   sessionId: string,
   currentBeatId: number,
-  priorTurns: { beat: number | null }[],
+  scene: BeatScene | undefined,
+  completedConditions: string[],
 ): Promise<void> {
   if (currentBeatId >= BEATS.length - 1) return;
-  const turnsAtBeat = priorTurns.filter((t) => t.beat === currentBeatId).length + 1; // +1 for the turn just saved
-  if (turnsAtBeat >= TURNS_PER_BEAT) {
+  if (!scene || scene.completionConditions.length === 0) return;
+  const required = scene.completionConditions.map((c) => c.id);
+  const done = new Set(completedConditions);
+  if (required.every((id) => done.has(id))) {
     await updateSessionBeat(db, sessionId, currentBeatId + 1);
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import * as styles from "./GameLog.css";
 
 export interface GameLogEntry {
   id: number;
@@ -18,13 +19,13 @@ export function GameLog({ entries }: Props) {
   }, [entries.length]);
 
   return (
-    <div className="game-log">
+    <div className={styles.gameLog}>
       {entries.map((e) => (
-        <div key={e.id} className="entry">
-          <p className="player-input">
+        <div key={e.id} className={styles.entry}>
+          <p className={styles.playerInput}>
             <em>&gt; {e.player}</em>
           </p>
-          <p className="ai-response">{e.ai}</p>
+          <p className={styles.aiResponse}>{e.ai}</p>
         </div>
       ))}
       <div ref={bottomRef} />

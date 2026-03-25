@@ -6,11 +6,21 @@ export interface Message {
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "llama-3.3-70b-versatile";
 
+export async function generateText(
+  apiKey: string,
+  messages: Message[],
+  system: string,
+  maxTokens = 150
+): Promise<string> {
+  return streamText(apiKey, messages, system, () => {}, maxTokens);
+}
+
 export async function streamText(
   apiKey: string,
   messages: Message[],
   system: string,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  maxTokens = 150
 ): Promise<string> {
   const response = await fetch(GROQ_API_URL, {
     method: "POST",
@@ -20,7 +30,7 @@ export async function streamText(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 150,
+      max_tokens: maxTokens,
       stream: true,
       messages: [{ role: "system", content: system }, ...messages],
     }),

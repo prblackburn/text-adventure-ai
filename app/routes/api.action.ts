@@ -77,7 +77,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const userPrompt = buildUserPrompt({
     seed,
     beat,
-    history: turns.map((t) => ({ player: t.player_input, ai: t.ai_response })),
+    history: turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response })),
     intent,
   });
 
@@ -107,10 +107,10 @@ async function maybeAdvanceBeat(
   db: D1Database,
   sessionId: string,
   currentBeatId: number,
-  priorTurns: { beat: number | null }[],
+  priorTurns: { beat: number | null; intent: string | null }[],
 ): Promise<void> {
   if (currentBeatId >= BEATS.length - 1) return;
-  const turnsAtBeat = priorTurns.filter((t) => t.beat === currentBeatId).length + 1; // +1 for the turn just saved
+  const turnsAtBeat = priorTurns.filter((t) => t.beat === currentBeatId && t.intent !== "intro").length + 1; // +1 for the turn just saved
   if (turnsAtBeat >= TURNS_PER_BEAT) {
     await updateSessionBeat(db, sessionId, currentBeatId + 1);
   }

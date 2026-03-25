@@ -42,6 +42,29 @@ Theme: ${seed.theme}. End with one brief question or cue for the player's next a
   return rules ? base + buildRulesSection(rules, beat.id) : base;
 }
 
+export function buildIntroPrompt(
+  seed: WorldSeed,
+  scene?: BeatScene
+): { system: string; user: string } {
+  const system = `You are a text adventure game narrator writing the opening scene of a new story.
+Setting: ${seed.setting}.
+The player is: ${seed.protagonist}.
+The story hook: ${seed.hook}.
+Theme: ${seed.theme}.
+
+Write an atmospheric opening scene in 3-5 sentences that:
+- Establishes mood and location immediately.
+- Naturally weaves in what the protagonist has on them or within arm's reach — do not list items robotically.
+- Ends with a single flavourful hint toward a possible first action (not a question, not a menu of options).
+Write in second person, present tense. Do not ask the player anything. Do not use bullet points or headers.`;
+
+  const user = scene?.items.length
+    ? `Items present in this scene: ${scene.items.join(", ")}.\nBegin the story.`
+    : "Begin the story.";
+
+  return { system, user };
+}
+
 export function buildUserPrompt(ctx: PromptContext): string {
   const historyStr = ctx.history
     .slice(-5)

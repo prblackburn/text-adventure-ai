@@ -3,30 +3,31 @@ export interface Message {
   content: string;
 }
 
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL = "llama-3.3-70b-versatile";
+
 export async function streamText(
   apiKey: string,
   messages: Message[],
   system: string,
   onChunk: (text: string) => void
 ): Promise<string> {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: MODEL,
       max_tokens: 512,
-      system,
-      messages,
       stream: true,
+      messages: [{ role: "system", content: system }, ...messages],
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Anthropic API error: ${response.status} ${await response.text()}`);
+    throw new Error(`Groq API error: ${response.status} ${await response.text()}`);
   }
 
   const reader = response.body!.getReader();
@@ -43,10 +44,11 @@ export async function streamText(
       const data = line.slice(6).trim();
       if (data === "[DONE]") break;
       try {
-        const event = JSON.parse(data) as { type: string; delta?: { type: string; text: string } };
-        if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
-          full += event.delta.text;
-          onChunk(event.delta.text);
+        const event = JSON.parse(data) as { choices: Array<{ delta: { content?: string } }> };
+        const text = event.choices[0]?.delta?.content;
+        if (text) {
+          full += text;
+          onChunk(text);
         }
       } catch {
         // ignore malformed SSE lines

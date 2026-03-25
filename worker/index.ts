@@ -8,7 +8,7 @@ import * as build from "virtual:react-router/server-build";
 export interface Env {
   text_adventure_ai_db: D1Database;
   SESSION_CACHE: KVNamespace;
-  ANTHROPIC_API_KEY: string;
+  GROQ_API_KEY: string;
 }
 
 const handler = createRequestHandler(build);

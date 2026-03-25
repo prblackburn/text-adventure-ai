@@ -32,7 +32,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   });
 
   let aiResponse = "";
-  await streamText(env.ANTHROPIC_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => {
+  await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => {
     aiResponse += chunk;
   });
 

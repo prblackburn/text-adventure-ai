@@ -1,4 +1,4 @@
-import type { WorldSeed, Beat, Intent } from "./types";
+import type { WorldSeed, Beat, Intent, WorldRules, BeatScene } from "./types";
 
 export interface PromptContext {
   seed: WorldSeed;
@@ -7,12 +7,39 @@ export interface PromptContext {
   intent: Intent;
 }
 
-export function buildSystemPrompt(seed: WorldSeed, beat: Beat): string {
-  return `You are a text adventure game narrator. Setting: ${seed.setting}.
+function buildRulesSection(rules: WorldRules, beatId: number): string {
+  const scene: BeatScene | undefined = rules.scenes[beatId];
+  const lines: string[] = ["\nWORLD RULES — never violate these:"];
+
+  for (const r of rules.global) lines.push(`- ${r}`);
+
+  if (scene) {
+    if (scene.items.length)
+      lines.push(`Items present: ${scene.items.join(", ")}.`);
+    if (scene.characters.length) {
+      lines.push("Characters present:");
+      for (const c of scene.characters) {
+        lines.push(`  ${c.name} — ${c.personality}.`);
+        if (c.knowledgeOf.length) lines.push(`    Knows about: ${c.knowledgeOf.join(", ")}.`);
+        if (c.ignorantOf.length) lines.push(`    Does NOT know: ${c.ignorantOf.join(", ")}.`);
+      }
+    }
+    if (scene.exits.length)
+      lines.push(`Available exits: ${scene.exits.join(", ")}.`);
+    for (const c of scene.constraints) lines.push(`- ${c}`);
+  }
+
+  return lines.join("\n");
+}
+
+export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules): string {
+  const base = `You are a text adventure game narrator. Setting: ${seed.setting}.
 The player is: ${seed.protagonist}.
 Current narrative beat: ${beat.name} — ${beat.description}.
 Respond in second person, present tense. Keep responses to 2-4 sentences maximum — short, punchy, atmospheric.
 Theme: ${seed.theme}. End with one brief question or cue for the player's next action.`;
+
+  return rules ? base + buildRulesSection(rules, beat.id) : base;
 }
 
 export function buildUserPrompt(ctx: PromptContext): string {

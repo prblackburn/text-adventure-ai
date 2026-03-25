@@ -19,3 +19,22 @@ export interface Beat {
   description: string;
   keywords: string[];
 }
+
+export interface CharacterDef {
+  name: string;
+  personality: string;
+  knowledgeOf: string[];
+  ignorantOf: string[];
+}
+
+export interface BeatScene {
+  items: string[];
+  characters: CharacterDef[];
+  exits: string[];
+  constraints: string[];
+}
+
+export interface WorldRules {
+  global: string[];
+  scenes: Partial<Record<number, BeatScene>>;
+}

@@ -21,6 +21,7 @@ const SEEDS: WorldSeed[] = [
   },
 ];
 
-export function generateSeed(): WorldSeed {
-  return SEEDS[Math.floor(Math.random() * SEEDS.length)];
+export function generateSeed(): { seed: WorldSeed; ruleIndex: number } {
+  const ruleIndex = Math.floor(Math.random() * SEEDS.length);
+  return { seed: SEEDS[ruleIndex], ruleIndex };
 }

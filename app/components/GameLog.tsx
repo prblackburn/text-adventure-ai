@@ -16,12 +16,14 @@ interface Props {
 function TypewriterEntry({
   entry,
   sessionId,
+  isLatest,
 }: {
   entry: GameLogEntry;
   sessionId: string;
+  isLatest: boolean;
 }) {
   const isIntro = !entry.player;
-  const { displayed, done, skip } = useTypewriter(entry.ai, entry.id, sessionId);
+  const { displayed, done, skip } = useTypewriter(entry.ai, entry.id, sessionId, isLatest);
 
   return (
     <div className={styles.entry}>
@@ -51,10 +53,12 @@ export function GameLog({ entries, sessionId }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries.length]);
 
+  const latestId = entries.at(-1)?.id;
+
   return (
     <div className={styles.gameLog}>
       {entries.map((e) => (
-        <TypewriterEntry key={e.id} entry={e} sessionId={sessionId} />
+        <TypewriterEntry key={e.id} entry={e} sessionId={sessionId} isLatest={e.id === latestId} />
       ))}
       <div ref={bottomRef} />
     </div>

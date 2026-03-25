@@ -7,23 +7,38 @@ function isNewEntry(key: string, entryId: number): boolean {
   return entryId > Number(sessionStorage.getItem(key) ?? 0);
 }
 
-export function useTypewriter(text: string, entryId: number, sessionId: string) {
+export function useTypewriter(
+  text: string,
+  entryId: number,
+  sessionId: string,
+  isLatest: boolean
+) {
   const key = `tw:${sessionId}`;
 
-  // Read sessionStorage synchronously so the initial render starts empty for
-  // new entries — no flash of full text before animation begins.
-  // Server always returns full text; suppressHydrationWarning on the element
-  // handles the server/client mismatch for new entries.
-  const [displayed, setDisplayed] = useState(() =>
-    isNewEntry(key, entryId) ? "" : text
-  );
-  const [done, setDone] = useState(() => !isNewEntry(key, entryId));
+  // Server: render the latest entry empty so the browser never displays full
+  // text before React hydrates — prevents the flash. All other entries render
+  // full text (they're already seen). Client: sessionStorage decides whether
+  // to animate (new) or show immediately (already seen).
+  const [displayed, setDisplayed] = useState(() => {
+    if (typeof window === "undefined") return isLatest ? "" : text;
+    return isNewEntry(key, entryId) ? "" : text;
+  });
+  const [done, setDone] = useState(() => {
+    if (typeof window === "undefined") return !isLatest;
+    return !isNewEntry(key, entryId);
+  });
 
   const skipRef = useRef<() => void>(() => {});
   const skip = useCallback(() => skipRef.current(), []);
 
   useEffect(() => {
-    if (!isNewEntry(key, entryId)) return;
+    if (!isNewEntry(key, entryId)) {
+      // Already seen — make sure full text is showing (handles the
+      // isLatest-but-not-new case after a page refresh).
+      setDisplayed(text);
+      setDone(true);
+      return;
+    }
 
     sessionStorage.setItem(key, String(entryId));
 

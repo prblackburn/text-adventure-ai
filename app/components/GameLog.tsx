@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as styles from "./GameLog.css";
 import { useTypewriter } from "../hooks/useTypewriter";
 
@@ -20,7 +20,7 @@ function TypewriterEntry({
   entry: GameLogEntry;
   sessionId: string;
 }) {
-  const isNew = useRef(() => {
+  const [isNew] = useState(() => {
     if (typeof window === "undefined") return false;
     const key = `tw:${sessionId}`;
     const seen = Number(sessionStorage.getItem(key) ?? 0);
@@ -29,7 +29,7 @@ function TypewriterEntry({
       return true;
     }
     return false;
-  }).current();
+  });
 
   const { displayed, done, skip } = useTypewriter(entry.ai, isNew);
 

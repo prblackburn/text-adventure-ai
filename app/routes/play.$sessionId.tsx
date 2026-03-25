@@ -37,7 +37,7 @@ export default function Play() {
   }));
 
   return (
-    <main>
+    <main className="play">
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
       <GameLog entries={entries} />
       <InputBar sessionId={session.id} />

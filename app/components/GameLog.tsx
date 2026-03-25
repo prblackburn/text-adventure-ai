@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 export interface GameLogEntry {
   id: number;
   player: string;
@@ -9,6 +11,12 @@ interface Props {
 }
 
 export function GameLog({ entries }: Props) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [entries.length]);
+
   return (
     <div className="game-log">
       {entries.map((e) => (
@@ -19,6 +27,7 @@ export function GameLog({ entries }: Props) {
           <p className="ai-response">{e.ai}</p>
         </div>
       ))}
+      <div ref={bottomRef} />
     </div>
   );
 }

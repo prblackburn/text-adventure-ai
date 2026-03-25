@@ -1,10 +1,11 @@
 import type { MetaFunction } from "react-router";
+import * as styles from "./_index.css";
 
 export const meta: MetaFunction = () => [{ title: "Ashveil — A Text Adventure" }];
 
 export default function Index() {
   return (
-    <main className="home">
+    <main className={styles.home}>
       <h1>Ashveil</h1>
       <p>A text adventure powered by AI. Your choices shape the story.</p>
       <form method="post" action="/api/session">

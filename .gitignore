@@ -100,6 +100,7 @@ web_modules/
 # React Router build output
 
 .react-router
+build/
 out
 
 # Gatsby files

@@ -225,8 +225,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Completion conditions system — LLM signals `[CONDITIONS_MET: [...]]` markers; beat advances when all conditions met
 - Typewriter effect on AI responses (`useTypewriter` hook)
 - Pre-commit hook (ESLint + TypeScript checks enforced before every commit)
-- CI — GitHub Actions lint and typecheck on every push
+- CI — GitHub Actions lint, typecheck, and tests on every push
 - Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
+- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, and `promptBuilder.ts` (87 tests)
 
 ### Planned (from README roadmap)
 - Inventory system
@@ -235,11 +236,10 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Combat mechanics
 - Rate limiting
 - Multiplayer / session sharing
-- Test coverage (no tests currently exist)
 
 ## Testing
 
-**No tests exist yet.** There is no test runner configured. When adding tests, use **Vitest** (compatible with Vite) and place test files alongside source with `.test.ts` / `.test.tsx` extensions.
+Tests use **Vitest** and live alongside source files with `.test.ts` extensions. Run with `pnpm test` (single run) or `pnpm test:watch` (watch mode). The CI workflow runs `pnpm test` on every push.
 
 ## Documentation Maintenance
 

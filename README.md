@@ -135,18 +135,18 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] CI — GitHub Actions workflow for lint and type checking on every push
 - [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
 - [x] Rate limiting — KV-based per-IP throttle (20 req/60 s); excess requests surface a thematic in-game message instead of hitting the LLM
+- [x] **NPC relationship tracking** — per-session disposition scores (-2 hostile → +2 friendly) for each character; updated on `dialogue`/`interact`/`combat` turns and injected into the LLM system prompt so NPCs react consistently to how you've treated them
 
 ---
 
 ## What's Next
 
-- [ ] **Character relationship state** — track NPC disposition toward player
 - [ ] **Branching endings** — multiple resolution paths per theme
 - [ ] **Combat resolution** — dice-style outcome logic for combat intents
 - [ ] **Session expiry** — TTL or cleanup job for old sessions
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3
-- [ ] **Test coverage** — 107 tests via Vitest; expand to cover DB and route logic
+- [ ] **Test coverage** — 120 tests via Vitest; expand to cover DB and route logic
 
 ---
 

@@ -11,7 +11,7 @@ import { BEATS } from "../game/beats";
 import { getRules } from "../game/worldRules";
 import { buildIntroPrompt } from "../game/promptBuilder";
 import { generateText } from "../lib/stream";
-import type { WorldSeed } from "../game/types";
+import type { WorldSeed, NpcStateMap } from "../game/types";
 
 export const meta: MetaFunction = () => [{ title: "Play — Ashveil" }];
 
@@ -56,12 +56,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
   const completedConditions: string[] = JSON.parse(session.completed_conditions ?? "[]");
   const inventory: string[] = JSON.parse(session.inventory ?? "[]");
+  const npcState: NpcStateMap = devMode ? JSON.parse(session.npc_state ?? "{}") : {};
 
-  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions, inventory };
+  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions, inventory, npcState };
 }
 
 export default function Play() {
-  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory } = useLoaderData<typeof loader>();
+  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory, npcState } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
 
   const entries = turns.map((t) => ({
@@ -88,6 +89,7 @@ export default function Play() {
           createdAt={session.created_at}
           completedConditions={completedConditions}
           inventory={inventory}
+          npcState={npcState}
         />
       )}
     </main>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildSystemPrompt, buildIntroPrompt, buildUserPrompt } from './promptBuilder';
+import { buildSystemPrompt, buildIntroPrompt, buildUserPrompt, dispositionLabel } from './promptBuilder';
 import { BEATS } from './beats';
-import type { WorldSeed, WorldRules, BeatScene } from './types';
+import type { WorldSeed, WorldRules, BeatScene, NpcStateMap } from './types';
 
 const seed: WorldSeed = {
 	theme: 'noir detective',
@@ -185,6 +185,84 @@ describe('buildIntroPrompt', () => {
 		const scene: BeatScene = { items: [], characters: [], exits: [], constraints: [], completionConditions: [] };
 		const result = buildIntroPrompt(seed, scene);
 		expect(result.user).toBe('Begin the story.');
+	});
+});
+
+describe('dispositionLabel', () => {
+	it('returns "hostile" for score -2', () => {
+		expect(dispositionLabel(-2)).toBe('hostile');
+	});
+
+	it('returns "hostile" for scores below -2', () => {
+		expect(dispositionLabel(-3)).toBe('hostile');
+	});
+
+	it('returns "wary" for score -1', () => {
+		expect(dispositionLabel(-1)).toBe('wary');
+	});
+
+	it('returns "neutral" for score 0', () => {
+		expect(dispositionLabel(0)).toBe('neutral');
+	});
+
+	it('returns "receptive" for score 1', () => {
+		expect(dispositionLabel(1)).toBe('receptive');
+	});
+
+	it('returns "friendly" for score 2', () => {
+		expect(dispositionLabel(2)).toBe('friendly');
+	});
+
+	it('returns "friendly" for scores above 2', () => {
+		expect(dispositionLabel(3)).toBe('friendly');
+	});
+});
+
+describe('buildSystemPrompt with npcState', () => {
+	const scene: BeatScene = {
+		items: [],
+		characters: [{ name: 'Mara Voss', personality: 'cold, calculating', knowledgeOf: ['the case'], ignorantOf: [] }],
+		exits: [],
+		constraints: [],
+		completionConditions: [],
+	};
+	const rules: WorldRules = { global: [], scenes: { [BEATS[0].id]: scene } };
+
+	it('includes no disposition tag when npcState is empty', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {});
+		expect(result).toContain('Mara Voss');
+		expect(result).not.toContain('disposition');
+	});
+
+	it('includes disposition label when npcState has an entry for the character', () => {
+		const npcState: NpcStateMap = { 'Mara Voss': { disposition: 1, interactionCount: 2 } };
+		const result = buildSystemPrompt(seed, beat, rules, [], npcState);
+		expect(result).toContain('Mara Voss');
+		expect(result).toContain('disposition toward player: receptive');
+	});
+
+	it('shows hostile disposition for negative score', () => {
+		const npcState: NpcStateMap = { 'Mara Voss': { disposition: -2, interactionCount: 1 } };
+		const result = buildSystemPrompt(seed, beat, rules, [], npcState);
+		expect(result).toContain('disposition toward player: hostile');
+	});
+
+	it('shows friendly disposition for max positive score', () => {
+		const npcState: NpcStateMap = { 'Mara Voss': { disposition: 2, interactionCount: 3 } };
+		const result = buildSystemPrompt(seed, beat, rules, [], npcState);
+		expect(result).toContain('disposition toward player: friendly');
+	});
+
+	it('backward-compatible: no npcState param gives same result as empty map', () => {
+		const withEmpty = buildSystemPrompt(seed, beat, rules, [], {});
+		const withoutParam = buildSystemPrompt(seed, beat, rules, []);
+		expect(withEmpty).toBe(withoutParam);
+	});
+
+	it('does not add disposition tag for NPCs not in npcState', () => {
+		const npcState: NpcStateMap = { 'Viktor Crane': { disposition: -1, interactionCount: 1 } };
+		const result = buildSystemPrompt(seed, beat, rules, [], npcState);
+		expect(result).not.toContain('disposition toward player');
 	});
 });
 

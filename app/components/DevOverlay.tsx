@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import type { Beat, WorldRules, WorldSeed } from "../game/types";
+import type { Beat, WorldRules, WorldSeed, NpcStateMap } from "../game/types";
+import { dispositionLabel } from "../game/promptBuilder";
 import type { Turn } from "../lib/db";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   createdAt: number;
   completedConditions: string[];
   inventory: string[];
+  npcState: NpcStateMap;
 }
 
 const S = {
@@ -142,7 +144,7 @@ function intentColor(intent: string): string {
   return map[intent] ?? "#5a5a5a";
 }
 
-export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt, completedConditions, inventory }: Props) {
+export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt, completedConditions, inventory, npcState }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -208,6 +210,26 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
             <div style={S.section}>
               <div style={S.heading}>Inventory</div>
               <div>{inventory.map((item) => <span key={item} style={S.chip}>{item}</span>)}</div>
+            </div>
+          )}
+
+          {/* NPC State */}
+          {Object.keys(npcState).length > 0 && (
+            <div style={S.section}>
+              <div style={S.heading}>NPC Dispositions</div>
+              {Object.entries(npcState).map(([name, state]) => {
+                const label = dispositionLabel(state.disposition);
+                const scoreColor = state.disposition > 0 ? "#6a9a4a" : state.disposition < 0 ? "#9a4a4a" : "#7a7a40";
+                return (
+                  <div key={name} style={{ marginBottom: "6px", paddingLeft: "6px", borderLeft: `2px solid ${scoreColor}` }}>
+                    <div style={{ ...S.row }}>
+                      <span style={{ color: "#f5c518" }}>{name}</span>
+                      <span style={{ color: scoreColor }}>{label} ({state.disposition > 0 ? "+" : ""}{state.disposition})</span>
+                    </div>
+                    <div style={{ ...S.dimText }}>interactions: {state.interactionCount}</div>
+                  </div>
+                );
+              })}
             </div>
           )}
 

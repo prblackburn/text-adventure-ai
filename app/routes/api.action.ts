@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions, updateInventory } from "../lib/db";
+import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions, updateInventory, updateNpcState } from "../lib/db";
 import { classifyIntent } from "../game/classifier";
 import { buildSystemPrompt, buildUserPrompt } from "../game/promptBuilder";
 import { BEATS, getBeat } from "../game/beats";
@@ -8,7 +8,7 @@ import { streamText } from "../lib/stream";
 import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
 import { isRateLimited } from "../lib/rateLimit";
-import type { WorldSeed, BeatScene } from "../game/types";
+import type { WorldSeed, BeatScene, NpcStateMap } from "../game/types";
 
 function isEntityPresent(subject: string | undefined, scene: BeatScene, inventory: string[] = []): boolean {
   if (!subject) return true; // no subject — nothing to validate
@@ -32,6 +32,12 @@ function extractConditionsMet(response: string): { cleanResponse: string; condit
 
 function normalizeSubject(s: string): string {
   return s.toLowerCase().replace(/^(the|a|an)\s+/, '');
+}
+
+function matchNpcInScene(subject: string | undefined, scene: BeatScene | undefined): string | undefined {
+  if (!subject || !scene) return undefined;
+  const s = normalizeSubject(subject);
+  return scene.characters.find((c) => c.name.toLowerCase().includes(s))?.name;
 }
 
 function matchItem(subject: string, items: string[]): string | undefined {
@@ -67,6 +73,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   const existingCompleted: string[] = JSON.parse(session.completed_conditions ?? "[]");
   const inventory: string[] = JSON.parse(session.inventory ?? "[]");
+  const npcState: NpcStateMap = JSON.parse(session.npc_state ?? "{}");
 
   const history = turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response }));
 
@@ -104,7 +111,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const newInventory = [...inventory, matchedItem];
     await updateInventory(env.text_adventure_ai_db, sessionId, newInventory);
 
-    const system = buildSystemPrompt(seed, beat, rules, newInventory);
+    const system = buildSystemPrompt(seed, beat, rules, newInventory, npcState);
     const userPrompt = buildUserPrompt({ seed, beat, history, intent });
     let aiResponse = "";
     await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
@@ -130,7 +137,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const newInventory = inventory.filter((i) => i !== matchedItem);
     await updateInventory(env.text_adventure_ai_db, sessionId, newInventory);
 
-    const system = buildSystemPrompt(seed, beat, rules, newInventory);
+    const system = buildSystemPrompt(seed, beat, rules, newInventory, npcState);
     const userPrompt = buildUserPrompt({ seed, beat, history, intent });
     let aiResponse = "";
     await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
@@ -172,7 +179,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   // LLM call
-  const system = buildSystemPrompt(seed, beat, rules, inventory);
+  const system = buildSystemPrompt(seed, beat, rules, inventory, npcState);
   const userPrompt = buildUserPrompt({ seed, beat, history, intent });
 
   let aiResponse = "";
@@ -190,6 +197,23 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   if (conditionIds.length > 0) {
     await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
+  }
+
+  // Update NPC disposition when the player directly interacts with a character
+  if (intent.type === "dialogue" || intent.type === "interact" || intent.type === "combat") {
+    const npcName = matchNpcInScene(intent.subject, scene);
+    if (npcName) {
+      const current = npcState[npcName] ?? { disposition: 0, interactionCount: 0 };
+      const delta = intent.type === "combat" ? -1 : 1;
+      const updatedNpcState: NpcStateMap = {
+        ...npcState,
+        [npcName]: {
+          disposition: Math.max(-2, Math.min(2, current.disposition + delta)),
+          interactionCount: current.interactionCount + 1,
+        },
+      };
+      await updateNpcState(env.text_adventure_ai_db, sessionId, updatedNpcState);
+    }
   }
 
   // Store cacheable responses for future players

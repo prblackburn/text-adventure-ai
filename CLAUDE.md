@@ -206,7 +206,7 @@ Enforced by `.prettierrc`:
 
 **sessions** — one row per game
 ```sql
-id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', inventory TEXT DEFAULT '[]', created_at INTEGER, updated_at INTEGER
+id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', inventory TEXT DEFAULT '[]', npc_state TEXT DEFAULT '{}', created_at INTEGER, updated_at INTEGER
 ```
 
 **turns** — one row per player action
@@ -245,9 +245,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - InputBar loading state — input and submit button are disabled while a form submission is in flight (`useNavigation`)
 - InputBar maxLength — player input capped at 200 characters to limit token usage
 - Rate limiting — KV-based per-IP request counter (20 req/60 s); rate-limited actions surface a thematic in-game message instead of calling the LLM (`app/lib/rateLimit.ts`, constants: `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`)
+- NPC relationship tracking — per-session NPC disposition scores (-2 hostile to +2 friendly) persisted in `sessions.npc_state`; updated on `dialogue`/`interact` (+1) and `combat` (-1) intents; injected into the LLM system prompt as `[disposition toward player: ...]` labels; visible in the DevOverlay NPC panel
 
 ### Planned (from README roadmap)
-- NPC relationship tracking
 - Branching story endings
 - Combat mechanics
 - Multiplayer / session sharing

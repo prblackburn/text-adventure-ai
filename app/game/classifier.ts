@@ -16,7 +16,10 @@ export function classifyIntent(input: string): Intent {
   for (const [type, patterns] of Object.entries(INTENT_PATTERNS) as [Exclude<IntentType, "other">, string[]][]) {
     for (const pattern of patterns) {
       if (words.includes(pattern) || lower.startsWith(pattern)) {
-        return { type, raw: input };
+        const charIdx = lower.indexOf(pattern);
+        const after = input.slice(charIdx + pattern.length).trim();
+        const subject = after.length > 0 ? after : undefined;
+        return { type, subject, raw: input };
       }
     }
   }

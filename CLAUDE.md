@@ -241,6 +241,19 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 
 **No tests exist yet.** There is no test runner configured. When adding tests, use **Vitest** (compatible with Vite) and place test files alongside source with `.test.ts` / `.test.tsx` extensions.
 
+## Documentation Maintenance
+
+After completing any significant change on a branch, always review both `CLAUDE.md` and `README.md` to determine if they need updating. Specifically:
+
+- **New features or capabilities** → update the "What's Done vs. Planned" section in `CLAUDE.md` and any relevant sections in `README.md`
+- **Architecture or request flow changes** → update the "Architecture & Request Flow" section
+- **New files or directory structure changes** → update the "Directory Structure" section
+- **New environment variables, commands, or config** → update "Development Workflow" or "Environment Variables"
+- **New conventions or patterns introduced** → update "Code Conventions"
+- **New pitfalls discovered** → add to "Common Pitfalls"
+
+This review should happen before the branch is considered complete, not as an afterthought.
+
 ## Common Pitfalls
 
 1. **No Node.js APIs by default** — `nodejs_compat` flag is set in `wrangler.toml`, but prefer Web APIs where possible.

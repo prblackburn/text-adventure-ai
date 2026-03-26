@@ -18,6 +18,7 @@ export function InputBar({ sessionId, disabled }: Props) {
         autoFocus
         autoComplete="off"
         disabled={disabled}
+        maxLength={200}
         placeholder="What do you do?"
       />
       <button type="submit" disabled={disabled}>

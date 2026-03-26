@@ -26,6 +26,10 @@ This file provides context for AI assistants working on this repository.
 
 ```
 text-adventure-ai/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml           # ESLint + TypeScript checks on every push
+│       └── deploy.yml       # Auto-deploy to Cloudflare Workers on merge to main
 ├── app/
 │   ├── components/          # Reusable UI components (paired .tsx + .css.ts)
 │   │   ├── BeatProgress.tsx # 5-beat story progress bar
@@ -39,6 +43,8 @@ text-adventure-ai/
 │   │   ├── worldRules.ts    # Per-theme scene rules (items, NPCs, exits)
 │   │   ├── classifier.ts    # Keyword-based intent classification
 │   │   └── promptBuilder.ts # LLM system/user prompt construction
+│   ├── hooks/
+│   │   └── useTypewriter.ts # Typewriter animation hook for AI responses
 │   ├── lib/                 # Infrastructure clients
 │   │   ├── db.ts            # D1 SQLite CRUD (sessions, turns)
 │   │   ├── responseCache.ts # KV cache read/write for generic responses
@@ -56,7 +62,8 @@ text-adventure-ai/
 ├── worker/
 │   └── index.ts             # Cloudflare Workers entry — dispatches to React Router
 ├── migrations/
-│   └── 0001_initial.sql     # D1 schema: sessions, turns, response_pool
+│   ├── 0001_initial.sql     # D1 schema: sessions, turns, response_pool
+│   └── 0002_conditions.sql  # Add completed_conditions column to sessions
 ├── wrangler.toml            # Cloudflare config (D1, KV, observability)
 ├── vite.config.ts           # Build: cloudflare-devproxy, vanilla-extract, react-router
 ├── react-router.config.ts   # SSR enabled
@@ -105,9 +112,10 @@ Browser
        4. Cache lookup — for examine/explore, check KV first
        5. Build system prompt (beat, theme, world rules, scene context)
        6. Call Groq API (streaming, max 150 tokens)
-       7. Store response in D1 (turns table) + optionally KV cache
-       8. Advance beat if turn threshold met (every TURNS_PER_BEAT = 3 turns)
-       9. Redirect to /play/{id} (PRG pattern)
+       7. Extract [CONDITIONS_MET: [...]] markers from LLM response
+       8. Store response in D1 (turns table) + optionally KV cache
+       9. Record completed conditions; advance beat when all conditions for current beat are met
+      10. Redirect to /play/{id} (PRG pattern)
 ```
 
 ## Key Concepts
@@ -120,7 +128,7 @@ Five beats defined in `app/game/beats.ts`:
 - **3 — Climax:** Peak tension moment
 - **4 — Resolution:** Story concludes
 
-Beat advances every `TURNS_PER_BEAT = 3` substantive turns in `api.action.ts`.
+Beat progression is **condition-based**: the LLM appends `[CONDITIONS_MET: [...]]` markers when story conditions are satisfied. The beat advances once all completion conditions for the current beat are met, tracked via `completed_conditions` in the sessions table.
 
 ### World Themes
 Three themes in `app/game/worldSeed.ts` and `app/game/worldRules.ts`:
@@ -131,8 +139,8 @@ Three themes in `app/game/worldSeed.ts` and `app/game/worldRules.ts`:
 Each theme has per-scene definitions: `items[]`, `characters[]`, `exits[]`, `constraints[]`, and a `globalRules[]` array.
 
 ### Intent Classification
-`app/game/classifier.ts` uses keyword matching (not LLM) to classify player input into 7 types:
-`explore`, `interact`, `combat`, `dialogue`, `examine`, `use`, `other`
+`app/game/classifier.ts` uses keyword matching (not LLM) to classify player input into 8 types:
+`explore`, `interact`, `combat`, `dialogue`, `examine`, `use`, `intro`, `other`
 
 Only `examine` and `explore` intents are eligible for KV caching.
 
@@ -185,7 +193,7 @@ Enforced by `.prettierrc`:
 
 **sessions** — one row per game
 ```sql
-id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, created_at INTEGER, updated_at INTEGER
+id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', created_at INTEGER, updated_at INTEGER
 ```
 
 **turns** — one row per player action
@@ -206,13 +214,19 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - D1 session/turn persistence
 - Groq LLM integration with streaming
 - 3-theme world system with full scene rules
-- 5-beat narrative progression
-- Keyword-based intent classifier
+- 5-beat narrative progression with condition-based beat advancement
+- Keyword-based intent classifier (8 intent types)
 - Entity pre-validation (no LLM call for invalid targets)
 - KV response caching for examine/explore intents
 - Retro terminal UI (gold-on-black, monospace)
 - Developer overlay for game state inspection
 - Vanilla Extract styling migration
+- Intro scene generation — atmospheric opening generated on session start
+- Completion conditions system — LLM signals `[CONDITIONS_MET: [...]]` markers; beat advances when all conditions met
+- Typewriter effect on AI responses (`useTypewriter` hook)
+- Pre-commit hook (ESLint + TypeScript checks enforced before every commit)
+- CI — GitHub Actions lint and typecheck on every push
+- Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
 
 ### Planned (from README roadmap)
 - Inventory system

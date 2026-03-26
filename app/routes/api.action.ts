@@ -31,7 +31,10 @@ function extractConditionsMet(response: string): { cleanResponse: string; condit
 }
 
 function normalizeSubject(s: string): string {
-  return s.toLowerCase().replace(/^(the|a|an)\s+/, '');
+  return s
+    .toLowerCase()
+    .replace(/^(to|with|at|about|from|for|on|in)\s+/, '')
+    .replace(/^(the|a|an)\s+/, '');
 }
 
 function matchNpcInScene(subject: string | undefined, scene: BeatScene | undefined): string | undefined {

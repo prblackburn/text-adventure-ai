@@ -5,7 +5,7 @@ export interface WorldSeed {
   hook: string;
 }
 
-export type IntentType = "explore" | "interact" | "combat" | "dialogue" | "examine" | "use" | "other" | "intro";
+export type IntentType = "explore" | "interact" | "pick_up" | "drop" | "combat" | "dialogue" | "examine" | "use" | "other" | "intro";
 
 export interface Intent {
   type: IntentType;

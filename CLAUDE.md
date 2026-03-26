@@ -35,6 +35,7 @@ text-adventure-ai/
 │   │   ├── BeatProgress.tsx # 5-beat story progress bar
 │   │   ├── GameLog.tsx      # Scrollable game transcript
 │   │   ├── InputBar.tsx     # Player command input form
+│   │   ├── InventoryPanel.tsx # Collapsible carried-items chip strip (always visible; shows "Nothing carried" when empty)
 │   │   └── DevOverlay.tsx   # Dev-mode debug panel (toggle with D key)
 │   ├── game/                # Core game logic (no React)
 │   │   ├── types.ts         # Shared TypeScript interfaces
@@ -63,7 +64,8 @@ text-adventure-ai/
 │   └── index.ts             # Cloudflare Workers entry — dispatches to React Router
 ├── migrations/
 │   ├── 0001_initial.sql     # D1 schema: sessions, turns, response_pool
-│   └── 0002_conditions.sql  # Add completed_conditions column to sessions
+│   ├── 0002_conditions.sql  # Add completed_conditions column to sessions
+│   └── 0003_inventory.sql   # Add inventory column to sessions
 ├── wrangler.toml            # Cloudflare config (D1, KV, observability)
 ├── vite.config.ts           # Build: cloudflare-devproxy, vanilla-extract, react-router
 ├── react-router.config.ts   # SSR enabled
@@ -108,14 +110,15 @@ Browser
   └─ POST /api/action  → main game loop:
        1. Parse sessionId, player input
        2. Classify intent (keyword matching — no LLM)
-       3. Entity validation — if target doesn't exist in scene, return early (no LLM call)
-       4. Cache lookup — for examine/explore, check KV first
-       5. Build system prompt (beat, theme, world rules, scene context)
-       6. Call Groq API (streaming, max 150 tokens)
-       7. Extract [CONDITIONS_MET: [...]] markers from LLM response
-       8. Store response in D1 (turns table) + optionally KV cache
-       9. Record completed conditions; advance beat when all conditions for current beat are met
-      10. Redirect to /play/{id} (PRG pattern)
+       3. pick_up/drop intents → deterministic inventory mutation → LLM narrates → store turn
+       4. Entity validation — if target doesn't exist in scene or inventory, return early (no LLM call)
+       5. Cache lookup — for examine/explore, check KV first
+       6. Build system prompt (beat, theme, world rules, inventory, scene context)
+       7. Call Groq API (streaming, max 150 tokens)
+       8. Extract [CONDITIONS_MET: [...]] markers from LLM response
+       9. Store response in D1 (turns table) + optionally KV cache
+      10. Record completed conditions; advance beat when all conditions for current beat are met
+      11. Redirect to /play/{id} (PRG pattern)
 ```
 
 ## Key Concepts
@@ -139,10 +142,20 @@ Three themes in `app/game/worldSeed.ts` and `app/game/worldRules.ts`:
 Each theme has per-scene definitions: `items[]`, `characters[]`, `exits[]`, `constraints[]`, and a `globalRules[]` array.
 
 ### Intent Classification
-`app/game/classifier.ts` uses keyword matching (not LLM) to classify player input into 8 types:
-`explore`, `interact`, `combat`, `dialogue`, `examine`, `use`, `intro`, `other`
+`app/game/classifier.ts` uses keyword matching (not LLM) to classify player input into 10 types:
+`explore`, `pick_up`, `drop`, `interact`, `combat`, `dialogue`, `examine`, `use`, `intro`, `other`
 
 Only `examine` and `explore` intents are eligible for KV caching.
+
+`pick_up` and `drop` are handled deterministically (no LLM for state changes) — the LLM is only called to narrate the action.
+
+### Inventory System
+Player inventory is stored as a JSON string column (`inventory`) on the `sessions` table. On each action:
+- `pick_up`: validates item exists in scene and isn't already held, adds to inventory, LLM narrates
+- `drop`: validates item is in inventory, removes it, LLM narrates
+- `use`: fully LLM-managed — can still emit `[CONDITIONS_MET: ...]` for story progression
+- Inventory is passed to `buildSystemPrompt` so the LLM knows what the player is carrying
+- Scene items the player has taken are filtered out of "Items present" in the system prompt
 
 ### Caching Strategy
 - **KV cache key:** `{intent}:{subject}` (e.g., `examine:door`)
@@ -193,7 +206,7 @@ Enforced by `.prettierrc`:
 
 **sessions** — one row per game
 ```sql
-id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', created_at INTEGER, updated_at INTEGER
+id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', inventory TEXT DEFAULT '[]', created_at INTEGER, updated_at INTEGER
 ```
 
 **turns** — one row per player action
@@ -215,8 +228,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Groq LLM integration with streaming
 - 3-theme world system with full scene rules
 - 5-beat narrative progression with condition-based beat advancement
-- Keyword-based intent classifier (8 intent types)
+- Keyword-based intent classifier (10 intent types)
 - Entity pre-validation (no LLM call for invalid targets)
+- Inventory system — pick up/drop items; persists across beats; filters scene items; collapsible InventoryPanel UI (always visible, shows "Nothing carried" when empty)
 - KV response caching for examine/explore intents
 - Retro terminal UI (gold-on-black, monospace)
 - Developer overlay for game state inspection
@@ -227,10 +241,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Pre-commit hook (ESLint + TypeScript checks enforced before every commit)
 - CI — GitHub Actions lint, typecheck, and tests on every push
 - Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
-- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, and `promptBuilder.ts` (87 tests)
+- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, and `promptBuilder.ts` (107 tests)
 
 ### Planned (from README roadmap)
-- Inventory system
 - NPC relationship tracking
 - Branching story endings
 - Combat mechanics
@@ -263,3 +276,4 @@ This review should happen before the branch is considered complete, not as an af
 5. **React Router 7 uses file-based routing** — route filenames define URL segments (`play.$sessionId.tsx` → `/play/:sessionId`).
 6. **Groq streaming is SSE** — `app/lib/stream.ts` manually parses `data:` lines; handle `[DONE]` sentinel.
 7. **Beat index vs. beat count** — beats are 0-indexed (0–4). `current_beat` in D1 is the index.
+8. **Item matching strips leading articles** — `matchItem` and `isEntityPresent` normalise subjects by stripping `the/a/an` before substring comparison (`"the bottle"` must match `"bottle of whiskey"`). Apply `normalizeSubject()` in `api.action.ts` whenever comparing player-supplied item names against world-rule strings.

@@ -25,8 +25,26 @@ describe('classifyIntent', () => {
 		);
 	});
 
+	describe('pick_up', () => {
+		it.each(['take the key', 'grab the rope', 'pick up the coin', 'get the lantern', 'collect the herbs'])(
+			'classifies "%s" as pick_up',
+			(input) => {
+				expect(classifyIntent(input).type).toBe('pick_up');
+			},
+		);
+	});
+
+	describe('drop', () => {
+		it.each(['drop the torch', 'leave the coin', 'discard the note', 'put down the sword'])(
+			'classifies "%s" as drop',
+			(input) => {
+				expect(classifyIntent(input).type).toBe('drop');
+			},
+		);
+	});
+
 	describe('interact', () => {
-		it.each(['take the key', 'grab the rope', 'pick up the coin', 'push the button', 'pull the lever', 'open the chest', 'close the door', 'touch the crystal'])(
+		it.each(['push the button', 'pull the lever', 'open the chest', 'close the door', 'touch the crystal'])(
 			'classifies "%s" as interact',
 			(input) => {
 				expect(classifyIntent(input).type).toBe('interact');
@@ -98,8 +116,9 @@ describe('classifyIntent', () => {
 			expect(classifyIntent('talk to Mara').subject).toBe('to Mara');
 		});
 
-		it('extracts subject from interact intent', () => {
+		it('extracts subject from pick_up intent', () => {
 			expect(classifyIntent('take the lantern').subject).toBe('the lantern');
+			expect(classifyIntent('take the lantern').type).toBe('pick_up');
 		});
 
 		it('extracts subject from explore intent', () => {

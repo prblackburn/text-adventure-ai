@@ -12,6 +12,7 @@ interface Props {
   rules: WorldRules | undefined;
   createdAt: number;
   completedConditions: string[];
+  inventory: string[];
 }
 
 const S = {
@@ -129,6 +130,8 @@ const S = {
 function intentColor(intent: string): string {
   const map: Record<string, string> = {
     explore: "#4a9a4a",
+    pick_up: "#5a7a9a",
+    drop: "#7a5a4a",
     interact: "#4a6a9a",
     combat: "#9a4a4a",
     dialogue: "#7a5a9a",
@@ -139,7 +142,7 @@ function intentColor(intent: string): string {
   return map[intent] ?? "#5a5a5a";
 }
 
-export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt, completedConditions }: Props) {
+export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, turns, rules, createdAt, completedConditions, inventory }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -199,6 +202,14 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
               <span style={S.value}>{turns.length}</span>
             </div>
           </div>
+
+          {/* Inventory */}
+          {inventory.length > 0 && (
+            <div style={S.section}>
+              <div style={S.heading}>Inventory</div>
+              <div>{inventory.map((item) => <span key={item} style={S.chip}>{item}</span>)}</div>
+            </div>
+          )}
 
           {/* World */}
           <div style={S.section}>
@@ -276,8 +287,17 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
               <>
                 {scene.items.length > 0 && (
                   <div style={{ marginBottom: "6px" }}>
-                    <div style={{ ...S.label, marginBottom: "3px" }}>Items</div>
-                    <div>{scene.items.map((i) => <span key={i} style={S.chip}>{i}</span>)}</div>
+                    <div style={{ ...S.label, marginBottom: "3px" }}>Scene Items</div>
+                    <div>
+                      {scene.items.map((i) => {
+                        const taken = inventory.some((held) => held.toLowerCase() === i.toLowerCase());
+                        return (
+                          <span key={i} style={{ ...S.chip, opacity: taken ? 0.4 : 1, textDecoration: taken ? "line-through" : "none" }}>
+                            {i}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
                 {scene.exits.length > 0 && (

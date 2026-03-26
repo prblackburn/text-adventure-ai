@@ -11,10 +11,10 @@ import type { WorldSeed, BeatScene } from "../game/types";
 
 function isEntityPresent(subject: string | undefined, scene: BeatScene, inventory: string[] = []): boolean {
   if (!subject) return true; // no subject — nothing to validate
-  const s = subject.toLowerCase();
-  const inItems = scene.items.some((i) => i.toLowerCase().includes(s));
+  const s = normalizeSubject(subject);
+  const inItems = scene.items.some((i) => { const n = normalizeSubject(i); return n.includes(s) || s.includes(n); });
   const inChars = scene.characters.some((c) => c.name.toLowerCase().includes(s));
-  const inInventory = inventory.some((i) => i.toLowerCase().includes(s));
+  const inInventory = inventory.some((i) => { const n = normalizeSubject(i); return n.includes(s) || s.includes(n); });
   return inItems || inChars || inInventory;
 }
 
@@ -29,9 +29,16 @@ function extractConditionsMet(response: string): { cleanResponse: string; condit
   }
 }
 
+function normalizeSubject(s: string): string {
+  return s.toLowerCase().replace(/^(the|a|an)\s+/, '');
+}
+
 function matchItem(subject: string, items: string[]): string | undefined {
-  const s = subject.toLowerCase();
-  return items.find((i) => i.toLowerCase().includes(s) || s.includes(i.toLowerCase()));
+  const s = normalizeSubject(subject);
+  return items.find((i) => {
+    const norm = normalizeSubject(i);
+    return norm.includes(s) || s.includes(norm);
+  });
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {

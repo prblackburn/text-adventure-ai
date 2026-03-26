@@ -287,7 +287,7 @@ export function DevOverlay({ sessionId, seed, ruleIndex, currentBeat, beats, tur
               <>
                 {scene.items.length > 0 && (
                   <div style={{ marginBottom: "6px" }}>
-                    <div style={{ ...S.label, marginBottom: "3px" }}>Items</div>
+                    <div style={{ ...S.label, marginBottom: "3px" }}>Scene Items</div>
                     <div>
                       {scene.items.map((i) => {
                         const taken = inventory.some((held) => held.toLowerCase() === i.toLowerCase());

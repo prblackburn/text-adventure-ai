@@ -11,6 +11,8 @@
 		"cf-typegen": "wrangler types",
 		"typecheck": "tsc",
 		"lint": "eslint .",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"check": "pnpm lint && pnpm typecheck",
 		"postinstall": "simple-git-hooks"
 	},
@@ -35,6 +37,7 @@
 		"typescript": "^5.5.2",
 		"typescript-eslint": "^8.57.2",
 		"vite": "^6.0.0",
+		"vitest": "^4.1.1",
 		"wrangler": "^4.76.0"
 	},
 	"simple-git-hooks": {

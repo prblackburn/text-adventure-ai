@@ -1,6 +1,6 @@
 import type { WorldSeed } from "./types";
 
-const SEEDS: WorldSeed[] = [
+export const SEEDS: WorldSeed[] = [
   {
     theme: "noir detective",
     setting: "Rain-soaked city, 1940s",
@@ -21,7 +21,7 @@ const SEEDS: WorldSeed[] = [
   },
 ];
 
-export function generateSeed(): { seed: WorldSeed; ruleIndex: number } {
-  const ruleIndex = Math.floor(Math.random() * SEEDS.length);
+export function generateSeed(index?: number): { seed: WorldSeed; ruleIndex: number } {
+  const ruleIndex = index !== undefined ? index : Math.floor(Math.random() * SEEDS.length);
   return { seed: SEEDS[ruleIndex], ruleIndex };
 }

@@ -2,7 +2,9 @@ import type { Intent, IntentType } from "./types";
 
 const INTENT_PATTERNS: Record<Exclude<IntentType, "other" | "intro">, string[]> = {
   explore: ["go", "walk", "move", "travel", "head", "explore", "navigate", "run"],
-  interact: ["take", "grab", "pick", "push", "pull", "open", "close", "touch"],
+  pick_up: ["take", "grab", "pick", "get", "collect"],
+  drop: ["drop", "leave", "discard", "put"],
+  interact: ["push", "pull", "open", "close", "touch"],
   combat: ["attack", "fight", "hit", "strike", "shoot", "kill", "stab", "slash"],
   dialogue: ["talk", "say", "ask", "tell", "speak", "shout", "whisper", "greet"],
   examine: ["look", "examine", "inspect", "check", "read", "search", "study"],

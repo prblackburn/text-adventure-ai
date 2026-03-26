@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions } from "../lib/db";
+import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions, updateInventory } from "../lib/db";
 import { classifyIntent } from "../game/classifier";
 import { buildSystemPrompt, buildUserPrompt } from "../game/promptBuilder";
 import { BEATS, getBeat } from "../game/beats";
@@ -9,12 +9,13 @@ import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
 import type { WorldSeed, BeatScene } from "../game/types";
 
-function isEntityPresent(subject: string | undefined, scene: BeatScene): boolean {
+function isEntityPresent(subject: string | undefined, scene: BeatScene, inventory: string[] = []): boolean {
   if (!subject) return true; // no subject — nothing to validate
   const s = subject.toLowerCase();
   const inItems = scene.items.some((i) => i.toLowerCase().includes(s));
   const inChars = scene.characters.some((c) => c.name.toLowerCase().includes(s));
-  return inItems || inChars;
+  const inInventory = inventory.some((i) => i.toLowerCase().includes(s));
+  return inItems || inChars || inInventory;
 }
 
 function extractConditionsMet(response: string): { cleanResponse: string; conditionIds: string[] } {
@@ -26,6 +27,11 @@ function extractConditionsMet(response: string): { cleanResponse: string; condit
   } catch {
     return { cleanResponse: response.trim(), conditionIds: [] };
   }
+}
+
+function matchItem(subject: string, items: string[]): string | undefined {
+  const s = subject.toLowerCase();
+  return items.find((i) => i.toLowerCase().includes(s) || s.includes(i.toLowerCase()));
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -52,9 +58,70 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const scene: BeatScene | undefined = rules?.scenes[beat.id];
 
   const existingCompleted: string[] = JSON.parse(session.completed_conditions ?? "[]");
+  const inventory: string[] = JSON.parse(session.inventory ?? "[]");
 
-  // Pre-flight: if the player targets an entity not present in this scene, skip LLM
-  if (scene && intent.subject && !isEntityPresent(intent.subject, scene)) {
+  const history = turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response }));
+
+  // pick_up: deterministic inventory mutation, LLM narrates
+  if (intent.type === "pick_up") {
+    if (!intent.subject) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: "Pick up what?", intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+    const sceneItems = scene?.items ?? [];
+    const matchedItem = matchItem(intent.subject, sceneItems);
+    const alreadyHeld = matchItem(intent.subject, inventory);
+
+    if (!matchedItem) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: `There's no ${intent.subject} here to pick up.`, intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+    if (alreadyHeld) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: `You're already carrying the ${alreadyHeld}.`, intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+
+    const newInventory = [...inventory, matchedItem];
+    await updateInventory(env.text_adventure_ai_db, sessionId, newInventory);
+
+    const system = buildSystemPrompt(seed, beat, rules, newInventory);
+    const userPrompt = buildUserPrompt({ seed, beat, history, intent });
+    let aiResponse = "";
+    await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
+    const { cleanResponse } = extractConditionsMet(aiResponse);
+    await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
+    return redirect(playUrl(`/play/${sessionId}`));
+  }
+
+  // drop: deterministic inventory mutation, LLM narrates
+  if (intent.type === "drop") {
+    if (!intent.subject) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: "Drop what?", intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+    const matchedItem = matchItem(intent.subject, inventory);
+
+    if (!matchedItem) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: `You're not carrying anything like that.`, intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+
+    const newInventory = inventory.filter((i) => i !== matchedItem);
+    await updateInventory(env.text_adventure_ai_db, sessionId, newInventory);
+
+    const system = buildSystemPrompt(seed, beat, rules, newInventory);
+    const userPrompt = buildUserPrompt({ seed, beat, history, intent });
+    let aiResponse = "";
+    await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
+    const { cleanResponse } = extractConditionsMet(aiResponse);
+    await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
+    return redirect(playUrl(`/play/${sessionId}`));
+  }
+
+  // Pre-flight: if the player targets an entity not present in this scene or inventory, skip LLM
+  if (scene && intent.subject && (intent.type === "examine" || intent.type === "interact") && !isEntityPresent(intent.subject, scene, inventory)) {
     const aiResponse = `There's no ${intent.subject} here.`;
     await addTurn(env.text_adventure_ai_db, {
       session_id: sessionId,
@@ -85,13 +152,8 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   // LLM call
-  const system = buildSystemPrompt(seed, beat, rules);
-  const userPrompt = buildUserPrompt({
-    seed,
-    beat,
-    history: turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response })),
-    intent,
-  });
+  const system = buildSystemPrompt(seed, beat, rules, inventory);
+  const userPrompt = buildUserPrompt({ seed, beat, history, intent });
 
   let aiResponse = "";
   await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => {

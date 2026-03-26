@@ -48,7 +48,9 @@ Beat progression is condition-based: the LLM appends `[CONDITIONS_MET: [...]]` m
 - Fantasy Dungeon — underground exploration, 5 scenes, 3+ characters
 - Sci-Fi Colony — space settlement, 5 scenes, 3+ characters
 
-**Intent types:** `explore`, `interact`, `combat`, `dialogue`, `examine`, `use`, `other`, `intro`
+**Intent types:** `explore`, `pick_up`, `drop`, `interact`, `combat`, `dialogue`, `examine`, `use`, `other`, `intro`
+
+`pick_up` and `drop` are handled deterministically — inventory is mutated directly in D1, and the LLM is called only for narration. `use` is fully LLM-managed and can still emit `[CONDITIONS_MET: ...]` to advance the story.
 
 ---
 
@@ -60,10 +62,11 @@ app/
 │   ├── BeatProgress    # 5-beat story progress bar
 │   ├── DevOverlay      # Debug panel (toggle with D key in ?dev mode)
 │   ├── GameLog         # Scrollable game transcript
-│   └── InputBar        # Player command input form
+│   ├── InputBar        # Player command input form
+│   └── InventoryPanel  # Carried items chip strip (hidden when empty)
 ├── game/               # Core logic (no React)
 │   ├── beats.ts        # 5-beat story structure
-│   ├── classifier.ts   # Keyword-based intent classification (8 types)
+│   ├── classifier.ts   # Keyword-based intent classification (10 types)
 │   ├── promptBuilder.ts# LLM prompt construction
 │   ├── types.ts        # Shared TypeScript interfaces
 │   ├── worldRules.ts   # Per-theme rules, scenes, characters, constraints
@@ -87,7 +90,8 @@ app/
     └── deploy.yml      # Auto-deploy to Cloudflare Workers on merge to main
 migrations/
 ├── 0001_initial.sql    # sessions, turns, response_pool tables
-└── 0002_conditions.sql # Add completed_conditions to sessions
+├── 0002_conditions.sql # Add completed_conditions to sessions
+└── 0003_inventory.sql  # Add inventory to sessions
 ```
 
 ---
@@ -113,8 +117,9 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] Cloudflare Workers + React Router 7 foundation
 - [x] Session creation with random world seed
 - [x] 3 fully specified world themes (scenes, characters, items, exits, constraints)
-- [x] Player intent classifier (8 intents)
+- [x] Player intent classifier (10 intents)
 - [x] Scene-aware entity validation (no LLM call for impossible actions)
+- [x] Inventory system — pick up / drop items; persists across beats; LLM-aware (filters scene items, knows player's carried items)
 - [x] Groq LLM integration with streaming responses
 - [x] Response caching (KV) for generic examine/explore actions
 - [x] D1 database: sessions, turn history, response pool
@@ -134,7 +139,6 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 
 ## What's Next
 
-- [ ] **Inventory system** — track items picked up/dropped per session
 - [ ] **Character relationship state** — track NPC disposition toward player
 - [ ] **Branching endings** — multiple resolution paths per theme
 - [ ] **Combat resolution** — dice-style outcome logic for combat intents
@@ -142,7 +146,7 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [ ] **Rate limiting** — guard against runaway Groq API spend
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3
-- [ ] **Test coverage** — no tests yet; Vitest is the planned runner
+- [ ] **Test coverage** — 107 tests via Vitest; expand to cover DB and route logic
 
 ---
 
@@ -156,7 +160,7 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 
 ## Database Schema
 
-**sessions** — one row per game run (`id`, `world_seed` JSON, `current_beat`, `completed_conditions` JSON array, timestamps)
+**sessions** — one row per game run (`id`, `world_seed` JSON, `current_beat`, `completed_conditions` JSON array, `inventory` JSON array, timestamps)
 
 **turns** — full conversation history (`session_id`, `player_input`, `ai_response`, `intent`, `beat`)
 

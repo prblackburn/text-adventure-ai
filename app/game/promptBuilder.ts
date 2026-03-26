@@ -7,15 +7,21 @@ export interface PromptContext {
   intent: Intent;
 }
 
-function buildRulesSection(rules: WorldRules, beatId: number): string {
+function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[] = []): string {
   const scene: BeatScene | undefined = rules.scenes[beatId];
   const lines: string[] = ["\nWORLD RULES — never violate these:"];
 
   for (const r of rules.global) lines.push(`- ${r}`);
 
+  if (inventory.length) {
+    lines.push(`\nPlayer's inventory: ${inventory.join(", ")}.`);
+    lines.push("The player is carrying these items — they are no longer in the scene.");
+  }
+
   if (scene) {
-    if (scene.items.length)
-      lines.push(`Items present: ${scene.items.join(", ")}.`);
+    const availableItems = scene.items.filter((item) => !inventory.some((held) => held.toLowerCase() === item.toLowerCase()));
+    if (availableItems.length)
+      lines.push(`Items present: ${availableItems.join(", ")}.`);
     if (scene.characters.length) {
       lines.push("Characters present:");
       for (const c of scene.characters) {
@@ -49,14 +55,14 @@ function buildRulesSection(rules: WorldRules, beatId: number): string {
   return lines.join("\n");
 }
 
-export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules): string {
+export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules, inventory: string[] = []): string {
   const base = `You are a text adventure game narrator. Setting: ${seed.setting}.
 The player is: ${seed.protagonist}.
 Current narrative beat: ${beat.name} — ${beat.description}.
 Respond in second person, present tense. Keep responses to 2-4 sentences maximum — short, punchy, atmospheric.
 Theme: ${seed.theme}. End with one brief question or cue for the player's next action.`;
 
-  return rules ? base + buildRulesSection(rules, beat.id) : base;
+  return rules ? base + buildRulesSection(rules, beat.id, inventory) : base;
 }
 
 export function buildIntroPrompt(

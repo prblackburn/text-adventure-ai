@@ -6,6 +6,7 @@ import { GameLog } from "../components/GameLog";
 import { InputBar } from "../components/InputBar";
 import { BeatProgress } from "../components/BeatProgress";
 import { DevOverlay } from "../components/DevOverlay";
+import { InventoryPanel } from "../components/InventoryPanel";
 import { BEATS } from "../game/beats";
 import { getRules } from "../game/worldRules";
 import { buildIntroPrompt } from "../game/promptBuilder";
@@ -54,12 +55,13 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
   const devRules = devMode ? rules : undefined;
 
   const completedConditions: string[] = JSON.parse(session.completed_conditions ?? "[]");
+  const inventory: string[] = JSON.parse(session.inventory ?? "[]");
 
-  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions };
+  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions, inventory };
 }
 
 export default function Play() {
-  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions } = useLoaderData<typeof loader>();
+  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory } = useLoaderData<typeof loader>();
 
   const entries = turns.map((t) => ({
     id: t.id,
@@ -70,6 +72,7 @@ export default function Play() {
   return (
     <main className={styles.play}>
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
+      <InventoryPanel items={inventory} />
       <GameLog entries={entries} sessionId={session.id} />
       <InputBar sessionId={session.id} />
       {devMode && (
@@ -83,6 +86,7 @@ export default function Play() {
           rules={rules}
           createdAt={session.created_at}
           completedConditions={completedConditions}
+          inventory={inventory}
         />
       )}
     </main>

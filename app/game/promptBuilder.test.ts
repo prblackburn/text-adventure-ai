@@ -86,6 +86,54 @@ describe('buildSystemPrompt', () => {
 	});
 });
 
+describe('buildSystemPrompt with inventory', () => {
+	const scene: BeatScene = {
+		items: ['rusty key', 'old map', 'lantern'],
+		characters: [],
+		exits: ['north'],
+		constraints: [],
+		completionConditions: [],
+	};
+	const rules: WorldRules = { global: [], scenes: { [beat.id]: scene } };
+
+	it('includes all scene items when inventory is empty', () => {
+		const result = buildSystemPrompt(seed, beat, rules, []);
+		expect(result).toContain('rusty key');
+		expect(result).toContain('old map');
+		expect(result).toContain('lantern');
+	});
+
+	it('excludes items in inventory from Items present', () => {
+		const result = buildSystemPrompt(seed, beat, rules, ['rusty key']);
+		expect(result).not.toMatch(/Items present:.*rusty key/);
+		expect(result).toContain('old map');
+		expect(result).toContain('lantern');
+	});
+
+	it('includes the inventory section when player carries items', () => {
+		const result = buildSystemPrompt(seed, beat, rules, ['rusty key', 'lantern']);
+		expect(result).toContain("Player's inventory");
+		expect(result).toContain('rusty key');
+		expect(result).toContain('lantern');
+	});
+
+	it('does not include inventory section when inventory is empty', () => {
+		const result = buildSystemPrompt(seed, beat, rules, []);
+		expect(result).not.toContain("Player's inventory");
+	});
+
+	it('backward-compatible: no inventory param gives same result as empty array', () => {
+		const withEmpty = buildSystemPrompt(seed, beat, rules, []);
+		const withoutParam = buildSystemPrompt(seed, beat, rules);
+		expect(withEmpty).toBe(withoutParam);
+	});
+
+	it('omits Items present line when all scene items are in inventory', () => {
+		const result = buildSystemPrompt(seed, beat, rules, ['rusty key', 'old map', 'lantern']);
+		expect(result).not.toContain('Items present:');
+	});
+});
+
 describe('buildIntroPrompt', () => {
 	it('returns an object with system and user keys', () => {
 		const result = buildIntroPrompt(seed);

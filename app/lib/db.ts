@@ -3,6 +3,7 @@ export interface Session {
   world_seed: string;
   current_beat: number;
   completed_conditions: string;
+  inventory: string;
   created_at: number;
   updated_at: number;
 }
@@ -51,6 +52,14 @@ export async function updateCompletedConditions(db: D1Database, sessionId: strin
   await db
     .prepare("UPDATE sessions SET completed_conditions = ?, updated_at = ? WHERE id = ?")
     .bind(JSON.stringify(conditionIds), now, sessionId)
+    .run();
+}
+
+export async function updateInventory(db: D1Database, sessionId: string, inventory: string[]): Promise<void> {
+  const now = Date.now();
+  await db
+    .prepare("UPDATE sessions SET inventory = ?, updated_at = ? WHERE id = ?")
+    .bind(JSON.stringify(inventory), now, sessionId)
     .run();
 }
 

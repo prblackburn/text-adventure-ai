@@ -35,7 +35,7 @@ text-adventure-ai/
 │   │   ├── BeatProgress.tsx # 5-beat story progress bar
 │   │   ├── GameLog.tsx      # Scrollable game transcript
 │   │   ├── InputBar.tsx     # Player command input form
-│   │   ├── InventoryPanel.tsx # Carried items chip strip (hidden when empty)
+│   │   ├── InventoryPanel.tsx # Collapsible carried-items chip strip (always visible; shows "Nothing carried" when empty)
 │   │   └── DevOverlay.tsx   # Dev-mode debug panel (toggle with D key)
 │   ├── game/                # Core game logic (no React)
 │   │   ├── types.ts         # Shared TypeScript interfaces
@@ -230,7 +230,7 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - 5-beat narrative progression with condition-based beat advancement
 - Keyword-based intent classifier (10 intent types)
 - Entity pre-validation (no LLM call for invalid targets)
-- Inventory system — pick up/drop items; persists across beats; filters scene items; InventoryPanel UI chip strip
+- Inventory system — pick up/drop items; persists across beats; filters scene items; collapsible InventoryPanel UI (always visible, shows "Nothing carried" when empty)
 - KV response caching for examine/explore intents
 - Retro terminal UI (gold-on-black, monospace)
 - Developer overlay for game state inspection
@@ -276,3 +276,4 @@ This review should happen before the branch is considered complete, not as an af
 5. **React Router 7 uses file-based routing** — route filenames define URL segments (`play.$sessionId.tsx` → `/play/:sessionId`).
 6. **Groq streaming is SSE** — `app/lib/stream.ts` manually parses `data:` lines; handle `[DONE]` sentinel.
 7. **Beat index vs. beat count** — beats are 0-indexed (0–4). `current_beat` in D1 is the index.
+8. **Item matching strips leading articles** — `matchItem` and `isEntityPresent` normalise subjects by stripping `the/a/an` before substring comparison (`"the bottle"` must match `"bottle of whiskey"`). Apply `normalizeSubject()` in `api.action.ts` whenever comparing player-supplied item names against world-rule strings.

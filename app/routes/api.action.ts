@@ -14,7 +14,7 @@ function isEntityPresent(subject: string | undefined, scene: BeatScene, inventor
   if (!subject) return true; // no subject — nothing to validate
   const s = normalizeSubject(subject);
   const inItems = scene.items.some((i) => { const n = normalizeSubject(i); return n.includes(s) || s.includes(n); });
-  const inChars = scene.characters.some((c) => c.name.toLowerCase().includes(s));
+  const inChars = scene.characters.some((c) => { const name = c.name.toLowerCase(); return name.includes(s) || s.includes(name); });
   const inInventory = inventory.some((i) => { const n = normalizeSubject(i); return n.includes(s) || s.includes(n); });
   return inItems || inChars || inInventory;
 }
@@ -40,7 +40,10 @@ function normalizeSubject(s: string): string {
 function matchNpcInScene(subject: string | undefined, scene: BeatScene | undefined): string | undefined {
   if (!subject || !scene) return undefined;
   const s = normalizeSubject(subject);
-  return scene.characters.find((c) => c.name.toLowerCase().includes(s))?.name;
+  return scene.characters.find((c) => {
+    const name = c.name.toLowerCase();
+    return name.includes(s) || s.includes(name);
+  })?.name;
 }
 
 function matchItem(subject: string, items: string[]): string | undefined {

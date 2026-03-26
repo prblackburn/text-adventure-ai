@@ -83,7 +83,8 @@ app/
     └── global.css.ts   # Body reset and global styles
 .github/
 └── workflows/
-    └── ci.yml          # ESLint + TypeScript CI checks
+    ├── ci.yml          # ESLint + TypeScript CI checks
+    └── deploy.yml      # Auto-deploy to Cloudflare Workers on merge to main
 migrations/
 ├── 0001_initial.sql    # sessions, turns, response_pool tables
 └── 0002_conditions.sql # Add completed_conditions to sessions
@@ -126,7 +127,8 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] Retro terminal UI — dark gold-on-black aesthetic, auto-scrolling game log, beat bar with completed/current/future states
 - [x] Vanilla Extract CSS-in-JS migration (zero-runtime styling, `.css.ts` files)
 - [x] Pre-commit hook — ESLint + TypeScript checks enforced before every commit
-- [x] CI/CD — GitHub Actions workflow for lint and type checking
+- [x] CI — GitHub Actions workflow for lint and type checking on every push
+- [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
 
 ---
 

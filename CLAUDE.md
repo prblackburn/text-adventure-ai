@@ -242,12 +242,12 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - CI — GitHub Actions lint, typecheck, and tests on every push
 - Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
 - Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, and `promptBuilder.ts` (107 tests)
+- Rate limiting — KV-based per-IP request counter (20 req/60 s); rate-limited actions surface a thematic in-game message instead of calling the LLM (`app/lib/rateLimit.ts`, constants: `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`)
 
 ### Planned (from README roadmap)
 - NPC relationship tracking
 - Branching story endings
 - Combat mechanics
-- Rate limiting
 - Multiplayer / session sharing
 
 ## Testing

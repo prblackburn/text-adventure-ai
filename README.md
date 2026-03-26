@@ -134,6 +134,7 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] Pre-commit hook — ESLint + TypeScript checks enforced before every commit
 - [x] CI — GitHub Actions workflow for lint and type checking on every push
 - [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
+- [x] Rate limiting — KV-based per-IP throttle (20 req/60 s); excess requests surface a thematic in-game message instead of hitting the LLM
 
 ---
 
@@ -143,7 +144,6 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [ ] **Branching endings** — multiple resolution paths per theme
 - [ ] **Combat resolution** — dice-style outcome logic for combat intents
 - [ ] **Session expiry** — TTL or cleanup job for old sessions
-- [ ] **Rate limiting** — guard against runaway Groq API spend
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3
 - [ ] **Test coverage** — 107 tests via Vitest; expand to cover DB and route logic

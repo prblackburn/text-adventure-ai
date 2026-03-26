@@ -7,6 +7,7 @@ import { BEATS, getBeat } from "../game/beats";
 import { streamText } from "../lib/stream";
 import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
+import { isRateLimited } from "../lib/rateLimit";
 import type { WorldSeed, BeatScene } from "../game/types";
 
 function isEntityPresent(subject: string | undefined, scene: BeatScene, inventory: string[] = []): boolean {
@@ -68,6 +69,18 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const inventory: string[] = JSON.parse(session.inventory ?? "[]");
 
   const history = turns.filter((t) => t.intent !== "intro").map((t) => ({ player: t.player_input, ai: t.ai_response }));
+
+  const ip = request.headers.get('CF-Connecting-IP') ?? '127.0.0.1';
+  if (await isRateLimited(env.SESSION_CACHE, ip)) {
+    await addTurn(env.text_adventure_ai_db, {
+      session_id: sessionId,
+      player_input: input,
+      ai_response: 'You pause, overwhelmed. Collect your thoughts before pressing on.',
+      intent: intent.type,
+      beat: beat.id,
+    });
+    return redirect(playUrl(`/play/${sessionId}`));
+  }
 
   // pick_up: deterministic inventory mutation, LLM narrates
   if (intent.type === "pick_up") {

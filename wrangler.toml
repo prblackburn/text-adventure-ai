@@ -1,4 +1,5 @@
 name = "text-adventure-ai"
+account_id = "7d21a26d654a7c7812bd68be2f1b4ab4"
 main = "build/server/index.js"
 compatibility_date = "2026-03-10"
 compatibility_flags = ["nodejs_compat"]

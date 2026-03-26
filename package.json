@@ -7,7 +7,7 @@
 		"dev": "react-router dev",
 		"build": "react-router build",
 		"deploy": "npm run build && wrangler deploy",
-		"start": "wrangler dev",
+		"start": "react-router build && wrangler dev",
 		"cf-typegen": "wrangler types",
 		"typecheck": "tsc",
 		"lint": "eslint .",

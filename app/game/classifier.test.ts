@@ -84,4 +84,38 @@ describe('classifyIntent', () => {
 			expect(classifyIntent('Go North').type).toBe('explore');
 		});
 	});
+
+	describe('subject extraction', () => {
+		it('extracts subject after keyword', () => {
+			expect(classifyIntent('examine the old desk').subject).toBe('the old desk');
+		});
+
+		it('extracts multi-word subject', () => {
+			expect(classifyIntent('look at the bottle of whiskey').subject).toBe('at the bottle of whiskey');
+		});
+
+		it('extracts subject from dialogue intent', () => {
+			expect(classifyIntent('talk to Mara').subject).toBe('to Mara');
+		});
+
+		it('extracts subject from interact intent', () => {
+			expect(classifyIntent('take the lantern').subject).toBe('the lantern');
+		});
+
+		it('extracts subject from explore intent', () => {
+			expect(classifyIntent('go north').subject).toBe('north');
+		});
+
+		it('preserves original casing in subject', () => {
+			expect(classifyIntent('Examine The Old Desk').subject).toBe('The Old Desk');
+		});
+
+		it('returns undefined subject when keyword has no argument', () => {
+			expect(classifyIntent('explore').subject).toBeUndefined();
+		});
+
+		it('returns undefined subject for unrecognised input', () => {
+			expect(classifyIntent('xyzzy').subject).toBeUndefined();
+		});
+	});
 });

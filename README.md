@@ -50,7 +50,7 @@ Beat progression is condition-based: the LLM appends `[CONDITIONS_MET: [...]]` m
 
 **Intent types:** `explore`, `pick_up`, `drop`, `interact`, `combat`, `dialogue`, `examine`, `use`, `other`, `intro`
 
-`pick_up` and `drop` are handled deterministically — inventory is mutated directly in D1, and the LLM is called only for narration. `use` is fully LLM-managed and can still emit `[CONDITIONS_MET: ...]` to advance the story.
+`pick_up` and `drop` are handled deterministically — inventory is mutated directly in D1, and the LLM is called only for narration. `combat` pre-computes a success/failure outcome via `resolveCombat()` (weapon inventory + scene constraints + NPC disposition) before calling the LLM, and emits combat-completable condition IDs deterministically on success. `use` is fully LLM-managed and can still emit `[CONDITIONS_MET: ...]` to advance the story.
 
 ---
 
@@ -67,6 +67,7 @@ app/
 ├── game/               # Core logic (no React)
 │   ├── beats.ts        # 5-beat story structure
 │   ├── classifier.ts   # Keyword-based intent classification (10 types)
+│   ├── combat.ts       # Combat outcome resolution (weapon detection, success/failure)
 │   ├── promptBuilder.ts# LLM prompt construction
 │   ├── types.ts        # Shared TypeScript interfaces
 │   ├── worldRules.ts   # Per-theme rules, scenes, characters, constraints
@@ -136,13 +137,13 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
 - [x] Rate limiting — KV-based per-IP throttle (20 req/60 s); excess requests surface a thematic in-game message instead of hitting the LLM
 - [x] **NPC relationship tracking** — per-session disposition scores (-2 hostile → +2 friendly) for each character; updated on `dialogue`/`interact`/`combat` turns and injected into the LLM system prompt so NPCs react consistently to how you've treated them. Note: hostile verbal actions require explicit keywords (`insult`, `threaten`, `taunt`, `mock`, `intimidate`) — free-form phrasing like "call X a coward" isn't detected. See "Ideas for Next Sessions" for a planned rework.
+- [x] **Combat mechanics** — `resolveCombat()` determines success or failure before calling the LLM based on inventory (weapon keywords), scene constraints (armed NPC detection), and NPC disposition. A `COMBAT DIRECTIVE` is injected into the system prompt so the LLM narrates the correct outcome. Combat-completable story conditions (e.g., neutralising the Noir villain with the loaded revolver) are emitted deterministically on success rather than relying on the LLM to remember. 219 tests.
 
 ---
 
 ## What's Next
 
 - [ ] **Branching endings** — multiple resolution paths per theme
-- [ ] **Combat resolution** — dice-style outcome logic for combat intents
 - [ ] **Session expiry** — TTL or cleanup job for old sessions
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3

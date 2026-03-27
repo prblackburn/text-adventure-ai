@@ -266,6 +266,45 @@ describe('buildSystemPrompt with npcState', () => {
 	});
 });
 
+describe('buildSystemPrompt with combatOutcome', () => {
+	const rules: WorldRules = { global: [], scenes: {} };
+
+	it('omits COMBAT DIRECTIVE when combatOutcome is not provided', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {});
+		expect(result).not.toContain('COMBAT DIRECTIVE');
+	});
+
+	it('includes success directive when combatOutcome.success is true', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {}, { success: true, hasWeapon: true, weaponUsed: 'loaded revolver' });
+		expect(result).toContain('COMBAT DIRECTIVE');
+		expect(result).toContain('SUCCEEDS');
+		expect(result).not.toContain('FAILS');
+	});
+
+	it('includes the weapon name when weaponUsed is set', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {}, { success: true, hasWeapon: true, weaponUsed: 'loaded revolver' });
+		expect(result).toContain('loaded revolver');
+	});
+
+	it('includes failure directive when combatOutcome.success is false', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {}, { success: false, hasWeapon: false });
+		expect(result).toContain('COMBAT DIRECTIVE');
+		expect(result).toContain('FAILS');
+		expect(result).not.toContain('SUCCEEDS');
+	});
+
+	it('does not include weapon name in failure directive', () => {
+		const result = buildSystemPrompt(seed, beat, rules, [], {}, { success: false, hasWeapon: false });
+		expect(result).not.toContain('They used the');
+	});
+
+	it('is backward-compatible — no combatOutcome param gives same result as undefined', () => {
+		const withoutParam = buildSystemPrompt(seed, beat, rules, [], {});
+		const withUndefined = buildSystemPrompt(seed, beat, rules, [], {}, undefined);
+		expect(withoutParam).toBe(withUndefined);
+	});
+});
+
 describe('buildUserPrompt', () => {
 	const intent = { type: 'explore' as const, raw: 'go north' };
 

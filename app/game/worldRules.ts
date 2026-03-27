@@ -124,6 +124,9 @@ export const RULES: WorldRules[] = [
             ],
           },
         ],
+        combatOutcomes: {
+          "Viktor Crane": ["noir_3_neutralize_viktor"],
+        },
       },
       4: {
         items: ["badge of the arresting officer", "your final invoice"],

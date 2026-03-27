@@ -121,9 +121,11 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const userPrompt = buildUserPrompt({ seed, beat, history, intent });
     let aiResponse = "";
     await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
-    const { cleanResponse } = extractConditionsMet(aiResponse);
+    const { cleanResponse, conditionIds } = extractConditionsMet(aiResponse);
+    const allCompleted = conditionIds.length > 0 ? [...new Set([...existingCompleted, ...conditionIds])] : existingCompleted;
+    if (conditionIds.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
     await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
-    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
@@ -147,14 +149,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const userPrompt = buildUserPrompt({ seed, beat, history, intent });
     let aiResponse = "";
     await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
-    const { cleanResponse } = extractConditionsMet(aiResponse);
+    const { cleanResponse, conditionIds } = extractConditionsMet(aiResponse);
+    const allCompleted = conditionIds.length > 0 ? [...new Set([...existingCompleted, ...conditionIds])] : existingCompleted;
+    if (conditionIds.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
     await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
-    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
   // Pre-flight: if the player targets an entity not present in this scene or inventory, skip LLM
-  if (scene && intent.subject && (intent.type === "examine" || intent.type === "interact") && !isEntityPresent(intent.subject, scene, inventory)) {
+  if (scene && intent.subject && (intent.type === "examine" || intent.type === "interact" || intent.type === "use" || intent.type === "dialogue" || intent.type === "combat") && !isEntityPresent(intent.subject, scene, inventory)) {
     const aiResponse = `There's no ${intent.subject} here.`;
     await addTurn(env.text_adventure_ai_db, {
       session_id: sessionId,

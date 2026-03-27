@@ -1,4 +1,5 @@
 import type { WorldSeed, Beat, Intent, WorldRules, BeatScene, NpcStateMap } from "./types";
+import type { CombatOutcome } from "./combat";
 
 export interface PromptContext {
   seed: WorldSeed;
@@ -15,7 +16,7 @@ export function dispositionLabel(score: number): string {
   return "neutral";
 }
 
-function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[] = [], npcState: NpcStateMap = {}): string {
+function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[] = [], npcState: NpcStateMap = {}, combatOutcome?: CombatOutcome): string {
   const scene: BeatScene | undefined = rules.scenes[beatId];
   const lines: string[] = ["\nWORLD RULES — never violate these:"];
 
@@ -62,17 +63,35 @@ function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[
     }
   }
 
+  if (combatOutcome !== undefined) {
+    if (combatOutcome.success) {
+      lines.push("\nCOMBAT DIRECTIVE: The player's attack SUCCEEDS. Narrate their victory in 2–4 atmospheric sentences.");
+      if (combatOutcome.weaponUsed) lines.push(`They used the ${combatOutcome.weaponUsed}.`);
+    } else {
+      lines.push(
+        "\nCOMBAT DIRECTIVE: The player's attack FAILS — they are unarmed or outmatched. Narrate the setback; they survive but do not prevail this turn.",
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 
-export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules, inventory: string[] = [], npcState: NpcStateMap = {}): string {
+export function buildSystemPrompt(
+  seed: WorldSeed,
+  beat: Beat,
+  rules?: WorldRules,
+  inventory: string[] = [],
+  npcState: NpcStateMap = {},
+  combatOutcome?: CombatOutcome,
+): string {
   const base = `You are a text adventure game narrator. Setting: ${seed.setting}.
 The player is: ${seed.protagonist}.
 Current narrative beat: ${beat.name} — ${beat.description}.
 Respond in second person, present tense. Keep responses to 2-4 sentences maximum — short, punchy, atmospheric.
 Theme: ${seed.theme}. End with one brief question or cue for the player's next action.`;
 
-  return rules ? base + buildRulesSection(rules, beat.id, inventory, npcState) : base;
+  return rules ? base + buildRulesSection(rules, beat.id, inventory, npcState, combatOutcome) : base;
 }
 
 export function buildIntroPrompt(

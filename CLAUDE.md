@@ -43,6 +43,7 @@ text-adventure-ai/
 │   │   ├── worldSeed.ts     # Random theme generation (3 seeds)
 │   │   ├── worldRules.ts    # Per-theme scene rules (items, NPCs, exits)
 │   │   ├── classifier.ts    # Keyword-based intent classification
+│   │   ├── combat.ts        # Combat outcome resolution (weapon detection, success/failure logic)
 │   │   └── promptBuilder.ts # LLM system/user prompt construction
 │   ├── hooks/
 │   │   └── useTypewriter.ts # Typewriter animation hook for AI responses
@@ -111,14 +112,15 @@ Browser
        1. Parse sessionId, player input
        2. Classify intent (keyword matching — no LLM)
        3. pick_up/drop intents → deterministic inventory mutation → LLM narrates → store turn
-       4. Entity validation — if target doesn't exist in scene or inventory, return early (no LLM call)
-       5. Cache lookup — for examine/explore, check KV first
-       6. Build system prompt (beat, theme, world rules, inventory, scene context)
-       7. Call Groq API (streaming, max 150 tokens)
-       8. Extract [CONDITIONS_MET: [...]] markers from LLM response
-       9. Store response in D1 (turns table) + optionally KV cache
-      10. Record completed conditions; advance beat when all conditions for current beat are met
-      11. Redirect to /play/{id} (PRG pattern)
+       4. combat intent → resolveCombat() determines success/failure → inject COMBAT DIRECTIVE into system prompt → LLM narrates → deterministically emit combat condition IDs on success → store turn
+       5. Entity validation — if target doesn't exist in scene or inventory, return early (no LLM call)
+       6. Cache lookup — for examine/explore, check KV first
+       7. Build system prompt (beat, theme, world rules, inventory, scene context)
+       8. Call Groq API (streaming, max 150 tokens)
+       9. Extract [CONDITIONS_MET: [...]] markers from LLM response
+      10. Store response in D1 (turns table) + optionally KV cache
+      11. Record completed conditions; advance beat when all conditions for current beat are met
+      12. Redirect to /play/{id} (PRG pattern)
 ```
 
 ## Key Concepts
@@ -241,15 +243,15 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Pre-commit hook (ESLint + TypeScript checks enforced before every commit)
 - CI — GitHub Actions lint, typecheck, and tests on every push
 - Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
-- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, `promptBuilder.ts`, `worldSeed.ts`, `worldRules.ts`, and `rateLimit.ts` (175 tests)
+- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, `promptBuilder.ts`, `worldSeed.ts`, `worldRules.ts`, `rateLimit.ts`, and `combat.ts` (219 tests)
 - InputBar loading state — input and submit button are disabled while a form submission is in flight (`useNavigation`)
 - InputBar maxLength — player input capped at 200 characters to limit token usage
 - Rate limiting — KV-based per-IP request counter (20 req/60 s); rate-limited actions surface a thematic in-game message instead of calling the LLM (`app/lib/rateLimit.ts`, constants: `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`)
 - NPC relationship tracking — per-session NPC disposition scores (-2 hostile to +2 friendly) persisted in `sessions.npc_state`; updated on `dialogue`/`interact` (+1) and `combat` (-1) intents; injected into the LLM system prompt as `[disposition toward player: ...]` labels; visible in the DevOverlay NPC panel
+- Combat mechanics — `resolveCombat()` in `app/game/combat.ts` determines success/failure before calling the LLM, based on inventory (weapon keywords) and scene constraints ("armed" NPC) and NPC disposition; a `COMBAT DIRECTIVE` is injected into the system prompt; combat-completable conditions (e.g., `noir_3_neutralize_viktor`) are emitted deterministically on success via `BeatScene.combatOutcomes`
 
 ### Planned (from README roadmap)
 - Branching story endings
-- Combat mechanics
 - Multiplayer / session sharing
 
 ## Testing
@@ -280,3 +282,4 @@ This review should happen before the branch is considered complete, not as an af
 7. **Beat index vs. beat count** — beats are 0-indexed (0–4). `current_beat` in D1 is the index.
 8. **Item matching strips leading articles** — `matchItem` and `isEntityPresent` normalise subjects by stripping `the/a/an` before substring comparison (`"the bottle"` must match `"bottle of whiskey"`). Apply `normalizeSubject()` in `api.action.ts` whenever comparing player-supplied item names against world-rule strings.
 9. **Always handle both `cleanResponse` and `conditionIds` from `extractConditionsMet`** — every LLM path in `api.action.ts` must save any returned `conditionIds` via `updateCompletedConditions` and pass the merged `allCompleted` array to `checkAndAdvanceBeat`. Discarding `conditionIds` silently breaks beat advancement.
+10. **Combat armed-NPC detection uses substring match on `scene.constraints`** — `resolveCombat` checks whether any constraint string includes the word `"armed"`. If you add a scene constraint that mentions armed-ness, ensure it contains this exact word or the check will miss it.

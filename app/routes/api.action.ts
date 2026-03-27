@@ -9,6 +9,9 @@ import { getRules } from "../game/worldRules";
 import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/responseCache";
 import { isRateLimited } from "../lib/rateLimit";
 import type { WorldSeed, BeatScene, NpcStateMap } from "../game/types";
+import { resolveCombat } from "../game/combat";
+
+const EMPTY_SCENE: BeatScene = { items: [], characters: [], exits: [], constraints: [], completionConditions: [] };
 
 function isEntityPresent(subject: string | undefined, scene: BeatScene, inventory: string[] = []): boolean {
   if (!subject) return true; // no subject — nothing to validate
@@ -157,8 +160,55 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
+  // combat: deterministic outcome resolution, LLM narrates
+  if (intent.type === "combat") {
+    // Entity validation — if target doesn't exist in scene, skip LLM
+    if (scene && intent.subject && !isEntityPresent(intent.subject, scene, inventory)) {
+      await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: `There's no ${intent.subject} here.`, intent: intent.type, beat: beat.id });
+      return redirect(playUrl(`/play/${sessionId}`));
+    }
+
+    const npcName = matchNpcInScene(intent.subject, scene);
+    const npcDisposition = npcName ? (npcState[npcName]?.disposition ?? 0) : 0;
+    const combatOutcome = resolveCombat(inventory, scene ?? EMPTY_SCENE, npcDisposition);
+
+    const system = buildSystemPrompt(seed, beat, rules, inventory, npcState, combatOutcome);
+    const userPrompt = buildUserPrompt({ seed, beat, history, intent });
+    let aiResponse = "";
+    await streamText(env.GROQ_API_KEY, [{ role: "user", content: userPrompt }], system, (chunk) => { aiResponse += chunk; });
+
+    const { cleanResponse, conditionIds: llmConditions } = extractConditionsMet(aiResponse);
+
+    // Deterministically emit combat condition IDs when combat succeeds and the scene maps this NPC
+    const combatConditions: string[] =
+      combatOutcome.success && npcName && scene?.combatOutcomes?.[npcName] ? scene.combatOutcomes[npcName] : [];
+
+    const allNewConditions = [...new Set([...llmConditions, ...combatConditions])];
+    const allCompleted =
+      allNewConditions.length > 0 ? [...new Set([...existingCompleted, ...allNewConditions])] : existingCompleted;
+
+    if (allNewConditions.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
+
+    // Update NPC disposition (combat always decrements by 1)
+    if (npcName) {
+      const current = npcState[npcName] ?? { disposition: 0, interactionCount: 0 };
+      const updatedNpcState: NpcStateMap = {
+        ...npcState,
+        [npcName]: {
+          disposition: Math.max(-2, Math.min(2, current.disposition - 1)),
+          interactionCount: current.interactionCount + 1,
+        },
+      };
+      await updateNpcState(env.text_adventure_ai_db, sessionId, updatedNpcState);
+    }
+
+    await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
+    return redirect(playUrl(`/play/${sessionId}`));
+  }
+
   // Pre-flight: if the player targets an entity not present in this scene or inventory, skip LLM
-  if (scene && intent.subject && (intent.type === "examine" || intent.type === "interact" || intent.type === "use" || intent.type === "dialogue" || intent.type === "combat") && !isEntityPresent(intent.subject, scene, inventory)) {
+  if (scene && intent.subject && (intent.type === "examine" || intent.type === "interact" || intent.type === "use" || intent.type === "dialogue") && !isEntityPresent(intent.subject, scene, inventory)) {
     const aiResponse = `There's no ${intent.subject} here.`;
     await addTurn(env.text_adventure_ai_db, {
       session_id: sessionId,
@@ -209,16 +259,15 @@ export async function action({ request, context }: ActionFunctionArgs) {
     await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
   }
 
-  // Update NPC disposition when the player directly interacts with a character
-  if (intent.type === "dialogue" || intent.type === "interact" || intent.type === "combat") {
+  // Update NPC disposition when the player directly interacts with a character (non-combat)
+  if (intent.type === "dialogue" || intent.type === "interact") {
     const npcName = matchNpcInScene(intent.subject, scene);
     if (npcName) {
       const current = npcState[npcName] ?? { disposition: 0, interactionCount: 0 };
-      const delta = intent.type === "combat" ? -1 : 1;
       const updatedNpcState: NpcStateMap = {
         ...npcState,
         [npcName]: {
-          disposition: Math.max(-2, Math.min(2, current.disposition + delta)),
+          disposition: Math.max(-2, Math.min(2, current.disposition + 1)),
           interactionCount: current.interactionCount + 1,
         },
       };

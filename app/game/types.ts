@@ -39,6 +39,7 @@ export interface BeatScene {
   exits: string[];
   constraints: string[];
   completionConditions: CompletionCondition[];
+  combatOutcomes?: Record<string, string[]>; // NPC name → condition IDs granted on successful combat
 }
 
 export interface WorldRules {

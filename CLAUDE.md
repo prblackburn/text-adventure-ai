@@ -241,7 +241,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Pre-commit hook (ESLint + TypeScript checks enforced before every commit)
 - CI — GitHub Actions lint, typecheck, and tests on every push
 - Automated deployment — GitHub Actions deploys to Cloudflare Workers on merge to main
-- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, and `promptBuilder.ts` (107 tests)
+- Test coverage — Vitest unit tests for `classifier.ts`, `beats.ts`, `promptBuilder.ts`, `worldSeed.ts`, `worldRules.ts`, and `rateLimit.ts` (175 tests)
+- InputBar loading state — input and submit button are disabled while a form submission is in flight (`useNavigation`)
+- InputBar maxLength — player input capped at 200 characters to limit token usage
 - Rate limiting — KV-based per-IP request counter (20 req/60 s); rate-limited actions surface a thematic in-game message instead of calling the LLM (`app/lib/rateLimit.ts`, constants: `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`)
 
 ### Planned (from README roadmap)

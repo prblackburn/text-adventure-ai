@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigation } from "react-router";
 import * as styles from "./play.$sessionId.css";
 import { getSession, getTurns, addTurn } from "../lib/db";
 import { GameLog } from "../components/GameLog";
@@ -62,6 +62,7 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
 export default function Play() {
   const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
 
   const entries = turns.map((t) => ({
     id: t.id,
@@ -74,7 +75,7 @@ export default function Play() {
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
       <InventoryPanel items={inventory} />
       <GameLog entries={entries} sessionId={session.id} />
-      <InputBar sessionId={session.id} />
+      <InputBar sessionId={session.id} disabled={navigation.state === "submitting"} />
       {devMode && (
         <DevOverlay
           sessionId={session.id}

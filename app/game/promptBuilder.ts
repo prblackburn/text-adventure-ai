@@ -1,4 +1,4 @@
-import type { WorldSeed, Beat, Intent, WorldRules, BeatScene } from "./types";
+import type { WorldSeed, Beat, Intent, WorldRules, BeatScene, NpcStateMap } from "./types";
 
 export interface PromptContext {
   seed: WorldSeed;
@@ -7,7 +7,15 @@ export interface PromptContext {
   intent: Intent;
 }
 
-function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[] = []): string {
+export function dispositionLabel(score: number): string {
+  if (score <= -2) return "hostile";
+  if (score <= -1) return "wary";
+  if (score >= 2) return "friendly";
+  if (score >= 1) return "receptive";
+  return "neutral";
+}
+
+function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[] = [], npcState: NpcStateMap = {}): string {
   const scene: BeatScene | undefined = rules.scenes[beatId];
   const lines: string[] = ["\nWORLD RULES — never violate these:"];
 
@@ -25,7 +33,9 @@ function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[
     if (scene.characters.length) {
       lines.push("Characters present:");
       for (const c of scene.characters) {
-        lines.push(`  ${c.name} — ${c.personality}.`);
+        const state = npcState[c.name];
+        const dispStr = state ? ` [disposition toward player: ${dispositionLabel(state.disposition)}]` : "";
+        lines.push(`  ${c.name} — ${c.personality}.${dispStr}`);
         if (c.knowledgeOf.length) lines.push(`    Knows about: ${c.knowledgeOf.join(", ")}.`);
         if (c.ignorantOf.length) lines.push(`    Does NOT know: ${c.ignorantOf.join(", ")}.`);
       }
@@ -55,14 +65,14 @@ function buildRulesSection(rules: WorldRules, beatId: number, inventory: string[
   return lines.join("\n");
 }
 
-export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules, inventory: string[] = []): string {
+export function buildSystemPrompt(seed: WorldSeed, beat: Beat, rules?: WorldRules, inventory: string[] = [], npcState: NpcStateMap = {}): string {
   const base = `You are a text adventure game narrator. Setting: ${seed.setting}.
 The player is: ${seed.protagonist}.
 Current narrative beat: ${beat.name} — ${beat.description}.
 Respond in second person, present tense. Keep responses to 2-4 sentences maximum — short, punchy, atmospheric.
 Theme: ${seed.theme}. End with one brief question or cue for the player's next action.`;
 
-  return rules ? base + buildRulesSection(rules, beat.id, inventory) : base;
+  return rules ? base + buildRulesSection(rules, beat.id, inventory, npcState) : base;
 }
 
 export function buildIntroPrompt(

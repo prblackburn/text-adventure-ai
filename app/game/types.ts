@@ -45,3 +45,10 @@ export interface WorldRules {
   global: string[];
   scenes: Partial<Record<number, BeatScene>>;
 }
+
+export interface NpcState {
+  disposition: number;
+  interactionCount: number;
+}
+
+export type NpcStateMap = Record<string, NpcState>;

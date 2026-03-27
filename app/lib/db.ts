@@ -4,6 +4,7 @@ export interface Session {
   current_beat: number;
   completed_conditions: string;
   inventory: string;
+  npc_state: string;
   created_at: number;
   updated_at: number;
 }
@@ -68,5 +69,13 @@ export async function updateSessionBeat(db: D1Database, sessionId: string, beat:
   await db
     .prepare("UPDATE sessions SET current_beat = ?, updated_at = ? WHERE id = ?")
     .bind(beat, now, sessionId)
+    .run();
+}
+
+export async function updateNpcState(db: D1Database, sessionId: string, npcState: Record<string, unknown>): Promise<void> {
+  const now = Date.now();
+  await db
+    .prepare("UPDATE sessions SET npc_state = ?, updated_at = ? WHERE id = ?")
+    .bind(JSON.stringify(npcState), now, sessionId)
     .run();
 }

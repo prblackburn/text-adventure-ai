@@ -59,6 +59,19 @@ describe('classifyIntent', () => {
 				expect(classifyIntent(input).type).toBe('combat');
 			},
 		);
+
+		it.each(['insult Dr. Osei', 'threaten Mara Voss', 'taunt the guard', 'mock Viktor Crane', 'intimidate the warden'])(
+			'classifies hostile verbal action "%s" as combat',
+			(input) => {
+				expect(classifyIntent(input).type).toBe('combat');
+			},
+		);
+
+		it('extracts NPC name as subject from hostile verbal actions', () => {
+			expect(classifyIntent('insult Dr. Osei').subject).toBe('Dr. Osei');
+			expect(classifyIntent('threaten Mara Voss').subject).toBe('Mara Voss');
+			expect(classifyIntent('taunt the guard').subject).toBe('the guard');
+		});
 	});
 
 	describe('dialogue', () => {

@@ -229,7 +229,7 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - 3-theme world system with full scene rules
 - 5-beat narrative progression with condition-based beat advancement
 - Keyword-based intent classifier (10 intent types)
-- Entity pre-validation (no LLM call for invalid targets)
+- Entity pre-validation (no LLM call for invalid targets) — covers `examine`, `interact`, `use`, `dialogue`, `combat`
 - Inventory system — pick up/drop items; persists across beats; filters scene items; collapsible InventoryPanel UI (always visible, shows "Nothing carried" when empty)
 - KV response caching for examine/explore intents
 - Retro terminal UI (gold-on-black, monospace)
@@ -279,3 +279,4 @@ This review should happen before the branch is considered complete, not as an af
 6. **Groq streaming is SSE** — `app/lib/stream.ts` manually parses `data:` lines; handle `[DONE]` sentinel.
 7. **Beat index vs. beat count** — beats are 0-indexed (0–4). `current_beat` in D1 is the index.
 8. **Item matching strips leading articles** — `matchItem` and `isEntityPresent` normalise subjects by stripping `the/a/an` before substring comparison (`"the bottle"` must match `"bottle of whiskey"`). Apply `normalizeSubject()` in `api.action.ts` whenever comparing player-supplied item names against world-rule strings.
+9. **Always handle both `cleanResponse` and `conditionIds` from `extractConditionsMet`** — every LLM path in `api.action.ts` must save any returned `conditionIds` via `updateCompletedConditions` and pass the merged `allCompleted` array to `checkAndAdvanceBeat`. Discarding `conditionIds` silently breaks beat advancement.

@@ -135,7 +135,7 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] CI — GitHub Actions workflow for lint and type checking on every push
 - [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
 - [x] Rate limiting — KV-based per-IP throttle (20 req/60 s); excess requests surface a thematic in-game message instead of hitting the LLM
-- [x] **NPC relationship tracking** — per-session disposition scores (-2 hostile → +2 friendly) for each character; updated on `dialogue`/`interact`/`combat` turns and injected into the LLM system prompt so NPCs react consistently to how you've treated them
+- [x] **NPC relationship tracking** — per-session disposition scores (-2 hostile → +2 friendly) for each character; updated on `dialogue`/`interact`/`combat` turns and injected into the LLM system prompt so NPCs react consistently to how you've treated them. Note: hostile verbal actions require explicit keywords (`insult`, `threaten`, `taunt`, `mock`, `intimidate`) — free-form phrasing like "call X a coward" isn't detected. See "Ideas for Next Sessions" for a planned rework.
 
 ---
 
@@ -146,12 +146,13 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [ ] **Session expiry** — TTL or cleanup job for old sessions
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3
-- [ ] **Test coverage** — 120 tests via Vitest; expand to cover DB and route logic
+- [ ] **Test coverage** — 194 tests via Vitest; expand to cover DB and route logic
 
 ---
 
 ## Ideas for Next Sessions
 
+- **Fixed dialogue options** — replace free-text NPC interaction with a set of contextual choices (e.g. friendly / neutral / hostile), rendered as buttons. This would make disposition changes predictable and discoverable, and remove the dependency on the player guessing valid intent keywords. Could be driven by the current scene's character list.
 - **ElevenLabs audio** — TTS for NPC dialogue lines, plus ambient soundscapes and SFX keyed to theme and scene; investigate storing generated audio in Cloudflare R2 or KV for reuse, avoiding repeat API calls for identical content
 - **Minimise LLM usage** — push as much as possible into hardcoded rules, classifiers, and deterministic logic; reserve the LLM for genuinely creative narrative moments to reduce token spend and keep responses fresher
 

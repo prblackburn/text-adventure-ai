@@ -5,6 +5,7 @@ export interface Session {
   completed_conditions: string;
   inventory: string;
   npc_state: string;
+  ending_path: string;
   created_at: number;
   updated_at: number;
 }
@@ -77,5 +78,13 @@ export async function updateNpcState(db: D1Database, sessionId: string, npcState
   await db
     .prepare("UPDATE sessions SET npc_state = ?, updated_at = ? WHERE id = ?")
     .bind(JSON.stringify(npcState), now, sessionId)
+    .run();
+}
+
+export async function updateEndingPath(db: D1Database, sessionId: string, endingPath: string): Promise<void> {
+  const now = Date.now();
+  await db
+    .prepare("UPDATE sessions SET ending_path = ?, updated_at = ? WHERE id = ?")
+    .bind(endingPath, now, sessionId)
     .run();
 }

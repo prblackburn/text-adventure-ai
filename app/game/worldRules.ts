@@ -143,6 +143,53 @@ export const RULES: WorldRules[] = [
         completionConditions: [],
       },
     },
+    endingVariants: {
+      // Viktor was shot — hard-boiled, morally complicated victory
+      gundown: {
+        items: ["badge of the arresting officer", "loaded revolver", "your final invoice"],
+        characters: [
+          {
+            name: "Mara Voss",
+            personality: "exhausted, shaken by the violence, quietly grateful",
+            knowledgeOf: ["what happened", "Emil is safe", "Viktor was shot"],
+            ignorantOf: ["what is in your case file about her"],
+          },
+        ],
+        exits: ["street — the case is closed"],
+        constraints: ["The story is resolving — Viktor is down. No new threats can emerge."],
+        completionConditions: [],
+      },
+      // Viktor was handed to the police — cleaner resolution
+      arrest: {
+        items: ["badge of the arresting officer", "your final invoice"],
+        characters: [
+          {
+            name: "Mara Voss",
+            personality: "exhausted, relieved, grateful",
+            knowledgeOf: ["what happened", "Emil is safe", "Viktor was arrested"],
+            ignorantOf: ["what is in your case file about her"],
+          },
+        ],
+        exits: ["street — the case is closed"],
+        constraints: ["The story is resolving — Viktor is in custody. No new threats can emerge."],
+        completionConditions: [],
+      },
+      // Fallback — mirrors scenes[4]
+      default: {
+        items: ["badge of the arresting officer", "your final invoice"],
+        characters: [
+          {
+            name: "Mara Voss",
+            personality: "exhausted, grateful",
+            knowledgeOf: ["what happened", "Emil is safe"],
+            ignorantOf: ["what is in your case file about her"],
+          },
+        ],
+        exits: ["street — the case is closed"],
+        constraints: ["The story is resolving — no new threats can emerge"],
+        completionConditions: [],
+      },
+    },
   },
 
   // 1 — Fantasy dungeon
@@ -258,6 +305,32 @@ export const RULES: WorldRules[] = [
         ],
       },
       4: {
+        items: ["the relic", "Grix's thank-you note (if Grix survived)"],
+        characters: [],
+        exits: ["rope climb to the surface — the dungeon is behind you"],
+        constraints: ["The adventure is complete — no new enemies appear"],
+        completionConditions: [],
+      },
+    },
+    endingVariants: {
+      // Fought and destroyed the Warden — violent but decisive
+      conqueror: {
+        items: ["the silver compass relic", "broken stone fragments of the Warden"],
+        characters: [],
+        exits: ["rope climb to the surface — the dungeon is silent behind you"],
+        constraints: ["The adventure is complete — the Warden is destroyed. No new enemies appear."],
+        completionConditions: [],
+      },
+      // Presented the obsidian key — the Warden let you pass with honour
+      honored: {
+        items: ["the silver compass relic", "obsidian key"],
+        characters: [],
+        exits: ["rope climb to the surface — the Warden watches you leave in silence"],
+        constraints: ["The adventure is complete — the Warden acknowledged your right of passage. No new enemies appear."],
+        completionConditions: [],
+      },
+      // Clever escape (scaffolding, distraction) — fallback
+      default: {
         items: ["the relic", "Grix's thank-you note (if Grix survived)"],
         characters: [],
         exits: ["rope climb to the surface — the dungeon is behind you"],
@@ -384,6 +457,38 @@ export const RULES: WorldRules[] = [
         ],
       },
       4: {
+        items: ["confirmed signal receipt", "colony manifest"],
+        characters: [
+          {
+            name: "Dr. Osei",
+            personality: "grateful, curious about you",
+            knowledgeOf: ["the colony is saved", "you knew more than you let on"],
+            ignorantOf: ["the full truth of your past — unless you tell her"],
+          },
+        ],
+        exits: ["landing pad — the rescue ship is inbound"],
+        constraints: ["The story is resolving — the external threat has passed"],
+        completionConditions: [],
+      },
+    },
+    endingVariants: {
+      // Dr. Osei trusts you fully — genuine partnership
+      partnership: {
+        items: ["confirmed signal receipt", "colony manifest", "Dr. Osei's personal frequency badge"],
+        characters: [
+          {
+            name: "Dr. Osei",
+            personality: "grateful, trusting, openly curious about your past",
+            knowledgeOf: ["the colony is saved", "you risked everything for people you barely knew", "she wants you to stay"],
+            ignorantOf: ["the full truth of your past — but she's ready to hear it"],
+          },
+        ],
+        exits: ["landing pad — the rescue ship is inbound, and Osei walks beside you"],
+        constraints: ["The story is resolving — you face the future together. No new threats can emerge."],
+        completionConditions: [],
+      },
+      // Standard rescue — Osei is grateful but still distant
+      default: {
         items: ["confirmed signal receipt", "colony manifest"],
         characters: [
           {

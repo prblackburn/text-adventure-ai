@@ -7,6 +7,7 @@ import { InputBar } from "../components/InputBar";
 import { BeatProgress } from "../components/BeatProgress";
 import { DevOverlay } from "../components/DevOverlay";
 import { InventoryPanel } from "../components/InventoryPanel";
+import { EndingBanner } from "../components/EndingBanner";
 import { BEATS } from "../game/beats";
 import { getRules } from "../game/worldRules";
 import { buildIntroPrompt } from "../game/promptBuilder";
@@ -58,12 +59,16 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
   const inventory: string[] = JSON.parse(session.inventory ?? "[]");
   const npcState: NpcStateMap = devMode ? JSON.parse(session.npc_state ?? "{}") : {};
 
-  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions, inventory, npcState };
+  const endingPath = session.ending_path ?? 'default';
+
+  return { session, turns, seed, ruleIndex, rules: devRules, devMode, completedConditions, inventory, npcState, endingPath };
 }
 
 export default function Play() {
-  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory, npcState } = useLoaderData<typeof loader>();
+  const { session, turns, seed, ruleIndex, rules, devMode, completedConditions, inventory, npcState, endingPath } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
+
+  const isGameOver = session.current_beat >= BEATS.length - 1;
 
   const entries = turns.map((t) => ({
     id: t.id,
@@ -76,7 +81,8 @@ export default function Play() {
       <BeatProgress beats={BEATS} currentBeat={session.current_beat} />
       <InventoryPanel items={inventory} />
       <GameLog entries={entries} sessionId={session.id} />
-      <InputBar sessionId={session.id} disabled={navigation.state === "submitting"} />
+      {isGameOver && <EndingBanner ruleIndex={ruleIndex} endingPath={endingPath} />}
+      <InputBar sessionId={session.id} disabled={navigation.state === "submitting" || isGameOver} />
       {devMode && (
         <DevOverlay
           sessionId={session.id}

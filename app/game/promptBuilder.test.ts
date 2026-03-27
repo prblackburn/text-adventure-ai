@@ -48,6 +48,7 @@ describe('buildSystemPrompt', () => {
 		const rules: WorldRules = {
 			global: ['No magic allowed'],
 			scenes: {},
+			endingVariants: {},
 		};
 		const result = buildSystemPrompt(seed, beat, rules);
 		expect(result).toContain('No magic allowed');
@@ -61,7 +62,7 @@ describe('buildSystemPrompt', () => {
 			constraints: [],
 			completionConditions: [],
 		};
-		const rules: WorldRules = { global: [], scenes: { [beat.id]: scene } };
+		const rules: WorldRules = { global: [], scenes: { [beat.id]: scene }, endingVariants: {} };
 		const result = buildSystemPrompt(seed, beat, rules);
 		expect(result).toContain('rusty key');
 		expect(result).toContain('old map');
@@ -75,7 +76,7 @@ describe('buildSystemPrompt', () => {
 			constraints: [],
 			completionConditions: [],
 		};
-		const rules: WorldRules = { global: [], scenes: { [beat.id]: scene } };
+		const rules: WorldRules = { global: [], scenes: { [beat.id]: scene }, endingVariants: {} };
 		const result = buildSystemPrompt(seed, beat, rules);
 		expect(result).toContain('north door');
 	});
@@ -94,7 +95,7 @@ describe('buildSystemPrompt with inventory', () => {
 		constraints: [],
 		completionConditions: [],
 	};
-	const rules: WorldRules = { global: [], scenes: { [beat.id]: scene } };
+	const rules: WorldRules = { global: [], scenes: { [beat.id]: scene }, endingVariants: {} };
 
 	it('includes all scene items when inventory is empty', () => {
 		const result = buildSystemPrompt(seed, beat, rules, []);
@@ -226,7 +227,7 @@ describe('buildSystemPrompt with npcState', () => {
 		constraints: [],
 		completionConditions: [],
 	};
-	const rules: WorldRules = { global: [], scenes: { [BEATS[0].id]: scene } };
+	const rules: WorldRules = { global: [], scenes: { [BEATS[0].id]: scene }, endingVariants: {} };
 
 	it('includes no disposition tag when npcState is empty', () => {
 		const result = buildSystemPrompt(seed, beat, rules, [], {});
@@ -267,7 +268,7 @@ describe('buildSystemPrompt with npcState', () => {
 });
 
 describe('buildSystemPrompt with combatOutcome', () => {
-	const rules: WorldRules = { global: [], scenes: {} };
+	const rules: WorldRules = { global: [], scenes: {}, endingVariants: {} };
 
 	it('omits COMBAT DIRECTIVE when combatOutcome is not provided', () => {
 		const result = buildSystemPrompt(seed, beat, rules, [], {});

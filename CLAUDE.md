@@ -33,8 +33,9 @@ text-adventure-ai/
 ├── app/
 │   ├── components/          # Reusable UI components (paired .tsx + .css.ts)
 │   │   ├── BeatProgress.tsx # 5-beat story progress bar
+│   │   ├── EndingBanner.tsx # Ending title + tagline shown at beat 4; includes "Begin New Adventure" link
 │   │   ├── GameLog.tsx      # Scrollable game transcript
-│   │   ├── InputBar.tsx     # Player command input form
+│   │   ├── InputBar.tsx     # Player command input form (disabled at beat 4)
 │   │   ├── InventoryPanel.tsx # Collapsible carried-items chip strip (always visible; shows "Nothing carried" when empty)
 │   │   └── DevOverlay.tsx   # Dev-mode debug panel (toggle with D key)
 │   ├── game/                # Core game logic (no React)
@@ -44,6 +45,7 @@ text-adventure-ai/
 │   │   ├── worldRules.ts    # Per-theme scene rules (items, NPCs, exits)
 │   │   ├── classifier.ts    # Keyword-based intent classification
 │   │   ├── combat.ts        # Combat outcome resolution (weapon detection, success/failure logic)
+│   │   ├── endings.ts       # Ending path determination + per-ending metadata (title, tagline)
 │   │   └── promptBuilder.ts # LLM system/user prompt construction
 │   ├── hooks/
 │   │   └── useTypewriter.ts # Typewriter animation hook for AI responses
@@ -66,7 +68,9 @@ text-adventure-ai/
 ├── migrations/
 │   ├── 0001_initial.sql     # D1 schema: sessions, turns, response_pool
 │   ├── 0002_conditions.sql  # Add completed_conditions column to sessions
-│   └── 0003_inventory.sql   # Add inventory column to sessions
+│   ├── 0003_inventory.sql   # Add inventory column to sessions
+│   ├── 0004_npc_state.sql   # Add npc_state column to sessions
+│   └── 0005_ending_path.sql # Add ending_path column to sessions
 ├── wrangler.toml            # Cloudflare config (D1, KV, observability)
 ├── vite.config.ts           # Build: cloudflare-devproxy, vanilla-extract, react-router
 ├── react-router.config.ts   # SSR enabled
@@ -120,7 +124,8 @@ Browser
        9. Extract [CONDITIONS_MET: [...]] markers from LLM response
       10. Store response in D1 (turns table) + optionally KV cache
       11. Record completed conditions; advance beat when all conditions for current beat are met
-      12. Redirect to /play/{id} (PRG pattern)
+      12. On advancing to beat 4, call determineEndingPath() and persist ending_path to sessions
+      13. Redirect to /play/{id} (PRG pattern)
 ```
 
 ## Key Concepts
@@ -208,7 +213,7 @@ Enforced by `.prettierrc`:
 
 **sessions** — one row per game
 ```sql
-id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', inventory TEXT DEFAULT '[]', npc_state TEXT DEFAULT '{}', created_at INTEGER, updated_at INTEGER
+id TEXT PRIMARY KEY, world_seed TEXT, current_beat INTEGER, completed_conditions TEXT DEFAULT '[]', inventory TEXT DEFAULT '[]', npc_state TEXT DEFAULT '{}', ending_path TEXT DEFAULT 'default', created_at INTEGER, updated_at INTEGER
 ```
 
 **turns** — one row per player action
@@ -249,9 +254,9 @@ id INTEGER PK, beat INTEGER, response_type TEXT, content TEXT, created_at INTEGE
 - Rate limiting — KV-based per-IP request counter (20 req/60 s); rate-limited actions surface a thematic in-game message instead of calling the LLM (`app/lib/rateLimit.ts`, constants: `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`)
 - NPC relationship tracking — per-session NPC disposition scores (-2 hostile to +2 friendly) persisted in `sessions.npc_state`; updated on `dialogue`/`interact` (+1) and `combat` (-1) intents; injected into the LLM system prompt as `[disposition toward player: ...]` labels; visible in the DevOverlay NPC panel
 - Combat mechanics — `resolveCombat()` in `app/game/combat.ts` determines success/failure before calling the LLM, based on inventory (weapon keywords) and scene constraints ("armed" NPC) and NPC disposition; a `COMBAT DIRECTIVE` is injected into the system prompt; combat-completable conditions (e.g., `noir_3_neutralize_viktor`) are emitted deterministically on success via `BeatScene.combatOutcomes`
+- Branching story endings — `app/game/endings.ts` computes an `ending_path` string (e.g. `'gundown'`, `'arrest'`, `'honored'`) from inventory and NPC dispositions when beat 3 completes; stored in `sessions.ending_path`; used to select a theme-specific `endingVariants[path]` scene at beat 4; `EndingBanner` component displays the ending title and tagline; `InputBar` is disabled at beat 4; test coverage in `endings.test.ts` (250 tests total)
 
 ### Planned (from README roadmap)
-- Branching story endings
 - Multiplayer / session sharing
 
 ## Testing
@@ -283,3 +288,5 @@ This review should happen before the branch is considered complete, not as an af
 8. **Item matching strips leading articles** — `matchItem` and `isEntityPresent` normalise subjects by stripping `the/a/an` before substring comparison (`"the bottle"` must match `"bottle of whiskey"`). Apply `normalizeSubject()` in `api.action.ts` whenever comparing player-supplied item names against world-rule strings.
 9. **Always handle both `cleanResponse` and `conditionIds` from `extractConditionsMet`** — every LLM path in `api.action.ts` must save any returned `conditionIds` via `updateCompletedConditions` and pass the merged `allCompleted` array to `checkAndAdvanceBeat`. Discarding `conditionIds` silently breaks beat advancement.
 10. **Combat armed-NPC detection uses substring match on `scene.constraints`** — `resolveCombat` checks whether any constraint string includes the word `"armed"`. If you add a scene constraint that mentions armed-ness, ensure it contains this exact word or the check will miss it.
+11. **`ending_path` is set once when beat 3 → beat 4 transition fires** — `determineEndingPath` reads inventory and npcState at the moment of transition. If the player somehow triggers the transition with stale state, the ending path won't update. Always pass the post-action `effectiveNpcState` and the current `inventory` to `checkAndAdvanceBeat`'s `endingContext`.
+12. **`endingVariants` keys must match `WorldRules` exactly** — the scene lookup uses `rules.endingVariants[session.ending_path]`. If `determineEndingPath` returns a path (e.g. `'gundown'`) that has no key in `endingVariants`, the scene falls back to `rules.scenes[4]`. Always add a `'default'` key as a guaranteed fallback.

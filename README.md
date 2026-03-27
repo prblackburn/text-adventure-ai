@@ -61,16 +61,18 @@ app/
 ├── components/         # UI components (each paired with a .css.ts file)
 │   ├── BeatProgress    # 5-beat story progress bar
 │   ├── DevOverlay      # Debug panel (toggle with D key in ?dev mode)
+│   ├── EndingBanner    # Ending title + tagline shown at beat 4
 │   ├── GameLog         # Scrollable game transcript
-│   ├── InputBar        # Player command input form
+│   ├── InputBar        # Player command input form (disabled at beat 4)
 │   └── InventoryPanel  # Collapsible carried-items chip strip (always visible)
 ├── game/               # Core logic (no React)
 │   ├── beats.ts        # 5-beat story structure
 │   ├── classifier.ts   # Keyword-based intent classification (10 types)
 │   ├── combat.ts       # Combat outcome resolution (weapon detection, success/failure)
+│   ├── endings.ts      # Ending path determination + per-ending metadata
 │   ├── promptBuilder.ts# LLM prompt construction
 │   ├── types.ts        # Shared TypeScript interfaces
-│   ├── worldRules.ts   # Per-theme rules, scenes, characters, constraints
+│   ├── worldRules.ts   # Per-theme rules, scenes, characters, constraints, endingVariants
 │   └── worldSeed.ts    # Random theme selection on session start
 ├── hooks/
 │   └── useTypewriter.ts# Typewriter animation for AI responses
@@ -92,7 +94,9 @@ app/
 migrations/
 ├── 0001_initial.sql    # sessions, turns, response_pool tables
 ├── 0002_conditions.sql # Add completed_conditions to sessions
-└── 0003_inventory.sql  # Add inventory to sessions
+├── 0003_inventory.sql  # Add inventory to sessions
+├── 0004_npc_state.sql  # Add npc_state to sessions
+└── 0005_ending_path.sql# Add ending_path to sessions
 ```
 
 ---
@@ -137,13 +141,13 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 - [x] Automated deployment — GitHub Actions deploys to Cloudflare Workers on every merge to main
 - [x] Rate limiting — KV-based per-IP throttle (20 req/60 s); excess requests surface a thematic in-game message instead of hitting the LLM
 - [x] **NPC relationship tracking** — per-session disposition scores (-2 hostile → +2 friendly) for each character; updated on `dialogue`/`interact`/`combat` turns and injected into the LLM system prompt so NPCs react consistently to how you've treated them. Note: hostile verbal actions require explicit keywords (`insult`, `threaten`, `taunt`, `mock`, `intimidate`) — free-form phrasing like "call X a coward" isn't detected. See "Ideas for Next Sessions" for a planned rework.
-- [x] **Combat mechanics** — `resolveCombat()` determines success or failure before calling the LLM based on inventory (weapon keywords), scene constraints (armed NPC detection), and NPC disposition. A `COMBAT DIRECTIVE` is injected into the system prompt so the LLM narrates the correct outcome. Combat-completable story conditions (e.g., neutralising the Noir villain with the loaded revolver) are emitted deterministically on success rather than relying on the LLM to remember. 219 tests.
+- [x] **Combat mechanics** — `resolveCombat()` determines success or failure before calling the LLM based on inventory (weapon keywords), scene constraints (armed NPC detection), and NPC disposition. A `COMBAT DIRECTIVE` is injected into the system prompt so the LLM narrates the correct outcome. Combat-completable story conditions (e.g., neutralising the Noir villain with the loaded revolver) are emitted deterministically on success rather than relying on the LLM to remember.
+- [x] **Branching story endings** — each theme has 2–3 distinct ending paths determined at beat 3 completion by inventory and NPC dispositions (e.g. Noir: `gundown` if carrying revolver, `arrest` otherwise; Dungeon: `conqueror` if Warden was attacked, `honored` if obsidian key carried, `default` otherwise; Sci-Fi: `partnership` if Dr. Osei disposition ≥ 1). Each path has a unique beat 4 scene, an ending title, and a tagline displayed by the `EndingBanner` component. The `InputBar` is disabled at beat 4. 250 tests.
 
 ---
 
 ## What's Next
 
-- [ ] **Branching endings** — multiple resolution paths per theme
 - [ ] **Session expiry** — TTL or cleanup job for old sessions
 - [ ] **Smarter intent classifier** — replace keyword matching with lightweight LLM call or embeddings
 - [ ] **World theme expansion** — add more themes beyond the initial 3
@@ -161,7 +165,7 @@ Append `?dev` to any `/play/{sessionId}` URL to enable the developer overlay. Pr
 
 ## Database Schema
 
-**sessions** — one row per game run (`id`, `world_seed` JSON, `current_beat`, `completed_conditions` JSON array, `inventory` JSON array, timestamps)
+**sessions** — one row per game run (`id`, `world_seed` JSON, `current_beat`, `completed_conditions` JSON array, `inventory` JSON array, `npc_state` JSON object, `ending_path` string, timestamps)
 
 **turns** — full conversation history (`session_id`, `player_input`, `ai_response`, `intent`, `beat`)
 

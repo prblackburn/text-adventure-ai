@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions, updateInventory, updateNpcState } from "../lib/db";
+import { getSession, getTurns, addTurn, updateSessionBeat, updateCompletedConditions, updateInventory, updateNpcState, updateEndingPath } from "../lib/db";
 import { classifyIntent } from "../game/classifier";
 import { buildSystemPrompt, buildUserPrompt } from "../game/promptBuilder";
 import { BEATS, getBeat } from "../game/beats";
@@ -10,6 +10,7 @@ import { buildCacheKey, getCachedResponse, setCachedResponse } from "../lib/resp
 import { isRateLimited } from "../lib/rateLimit";
 import type { WorldSeed, BeatScene, NpcStateMap } from "../game/types";
 import { resolveCombat } from "../game/combat";
+import { determineEndingPath } from "../game/endings";
 
 const EMPTY_SCENE: BeatScene = { items: [], characters: [], exits: [], constraints: [], completionConditions: [] };
 
@@ -78,7 +79,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const intent = classifyIntent(input);
 
   const rules = ruleIndex !== undefined ? getRules(ruleIndex) : undefined;
-  const scene: BeatScene | undefined = rules?.scenes[beat.id];
+  const rawScene: BeatScene | undefined = rules?.scenes[beat.id];
+  // At beat 4 (Resolution), use the ending variant scene if one is set
+  const scene: BeatScene | undefined =
+    beat.id === BEATS.length - 1 && session.ending_path && rules?.endingVariants[session.ending_path]
+      ? rules.endingVariants[session.ending_path]
+      : rawScene;
 
   const existingCompleted: string[] = JSON.parse(session.completed_conditions ?? "[]");
   const inventory: string[] = JSON.parse(session.inventory ?? "[]");
@@ -128,7 +134,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const allCompleted = conditionIds.length > 0 ? [...new Set([...existingCompleted, ...conditionIds])] : existingCompleted;
     if (conditionIds.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
     await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
-    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted, { ruleIndex, npcState, inventory: newInventory });
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
@@ -156,7 +162,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const allCompleted = conditionIds.length > 0 ? [...new Set([...existingCompleted, ...conditionIds])] : existingCompleted;
     if (conditionIds.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
     await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
-    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted, { ruleIndex, npcState, inventory: newInventory });
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
@@ -189,21 +195,22 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     if (allNewConditions.length > 0) await updateCompletedConditions(env.text_adventure_ai_db, sessionId, allCompleted);
 
-    // Update NPC disposition (combat always decrements by 1)
+    // Update NPC disposition (combat always decrements by 1) — hoist to effectiveNpcState for ending determination
+    let effectiveCombatNpcState = npcState;
     if (npcName) {
       const current = npcState[npcName] ?? { disposition: 0, interactionCount: 0 };
-      const updatedNpcState: NpcStateMap = {
+      effectiveCombatNpcState = {
         ...npcState,
         [npcName]: {
           disposition: Math.max(-2, Math.min(2, current.disposition - 1)),
           interactionCount: current.interactionCount + 1,
         },
       };
-      await updateNpcState(env.text_adventure_ai_db, sessionId, updatedNpcState);
+      await updateNpcState(env.text_adventure_ai_db, sessionId, effectiveCombatNpcState);
     }
 
     await addTurn(env.text_adventure_ai_db, { session_id: sessionId, player_input: input, ai_response: cleanResponse, intent: intent.type, beat: beat.id });
-    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
+    await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted, { ruleIndex, npcState: effectiveCombatNpcState, inventory });
     return redirect(playUrl(`/play/${sessionId}`));
   }
 
@@ -233,7 +240,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
         beat: beat.id,
       });
       // Cached responses don't complete conditions — check advancement with existing state
-      await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted);
+      await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, existingCompleted, { ruleIndex, npcState, inventory });
       return redirect(playUrl(`/play/${sessionId}`));
     }
   }
@@ -260,18 +267,19 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   // Update NPC disposition when the player directly interacts with a character (non-combat)
+  let effectiveLlmNpcState = npcState;
   if (intent.type === "dialogue" || intent.type === "interact") {
     const npcName = matchNpcInScene(intent.subject, scene);
     if (npcName) {
       const current = npcState[npcName] ?? { disposition: 0, interactionCount: 0 };
-      const updatedNpcState: NpcStateMap = {
+      effectiveLlmNpcState = {
         ...npcState,
         [npcName]: {
           disposition: Math.max(-2, Math.min(2, current.disposition + 1)),
           interactionCount: current.interactionCount + 1,
         },
       };
-      await updateNpcState(env.text_adventure_ai_db, sessionId, updatedNpcState);
+      await updateNpcState(env.text_adventure_ai_db, sessionId, effectiveLlmNpcState);
     }
   }
 
@@ -287,9 +295,15 @@ export async function action({ request, context }: ActionFunctionArgs) {
     intent: intent.type,
     beat: beat.id,
   });
-  await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted);
+  await checkAndAdvanceBeat(env.text_adventure_ai_db, sessionId, beat.id, scene, allCompleted, { ruleIndex, npcState: effectiveLlmNpcState, inventory });
 
   return redirect(playUrl(`/play/${sessionId}`));
+}
+
+interface EndingContext {
+  ruleIndex: number | undefined;
+  npcState: NpcStateMap;
+  inventory: string[];
 }
 
 async function checkAndAdvanceBeat(
@@ -298,12 +312,18 @@ async function checkAndAdvanceBeat(
   currentBeatId: number,
   scene: BeatScene | undefined,
   completedConditions: string[],
+  endingContext?: EndingContext,
 ): Promise<void> {
   if (currentBeatId >= BEATS.length - 1) return;
   if (!scene || scene.completionConditions.length === 0) return;
   const required = scene.completionConditions.map((c) => c.id);
   const done = new Set(completedConditions);
   if (required.every((id) => done.has(id))) {
-    await updateSessionBeat(db, sessionId, currentBeatId + 1);
+    const newBeat = currentBeatId + 1;
+    await updateSessionBeat(db, sessionId, newBeat);
+    if (newBeat === BEATS.length - 1 && endingContext) {
+      const path = determineEndingPath(endingContext.ruleIndex, endingContext.npcState, endingContext.inventory);
+      await updateEndingPath(db, sessionId, path);
+    }
   }
 }

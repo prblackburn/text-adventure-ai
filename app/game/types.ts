@@ -45,6 +45,7 @@ export interface BeatScene {
 export interface WorldRules {
   global: string[];
   scenes: Partial<Record<number, BeatScene>>;
+  endingVariants: Record<string, BeatScene>; // endingPath → scene used at beat 4
 }
 
 export interface NpcState {

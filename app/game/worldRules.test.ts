@@ -68,3 +68,33 @@ describe('getRules', () => {
 		expect(getRules(999)).toBe(RULES[0]);
 	});
 });
+
+describe('combatOutcomes integrity', () => {
+	it('every combatOutcome condition id references a valid completionCondition in the same scene', () => {
+		for (const [ri, rules] of RULES.entries()) {
+			for (let beat = 0; beat < BEAT_COUNT; beat++) {
+				const scene = rules.scenes[beat];
+				if (!scene?.combatOutcomes) continue;
+				const validIds = new Set(scene.completionConditions.map((c) => c.id));
+				for (const [npcName, conditionIds] of Object.entries(scene.combatOutcomes)) {
+					for (const id of conditionIds) {
+						expect(validIds.has(id), `rules[${ri}] scene[${beat}] combatOutcomes["${npcName}"] references unknown condition id "${id}"`).toBe(true);
+					}
+				}
+			}
+		}
+	});
+
+	it('every combatOutcome NPC key matches a character name in the same scene', () => {
+		for (const [ri, rules] of RULES.entries()) {
+			for (let beat = 0; beat < BEAT_COUNT; beat++) {
+				const scene = rules.scenes[beat];
+				if (!scene?.combatOutcomes) continue;
+				const characterNames = new Set(scene.characters.map((c) => c.name));
+				for (const npcName of Object.keys(scene.combatOutcomes)) {
+					expect(characterNames.has(npcName), `rules[${ri}] scene[${beat}] combatOutcomes key "${npcName}" has no matching character`).toBe(true);
+				}
+			}
+		}
+	});
+});

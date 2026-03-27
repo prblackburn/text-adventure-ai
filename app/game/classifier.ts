@@ -5,7 +5,7 @@ const INTENT_PATTERNS: Record<Exclude<IntentType, "other" | "intro">, string[]> 
   pick_up: ["take", "grab", "pick", "get", "collect"],
   drop: ["drop", "leave", "discard", "put"],
   interact: ["push", "pull", "open", "close", "touch"],
-  combat: ["attack", "fight", "hit", "strike", "shoot", "kill", "stab", "slash"],
+  combat: ["attack", "fight", "hit", "strike", "shoot", "kill", "stab", "slash", "insult", "threaten", "taunt", "mock", "intimidate"],
   dialogue: ["talk", "say", "ask", "tell", "speak", "shout", "whisper", "greet"],
   examine: ["look", "examine", "inspect", "check", "read", "search", "study"],
   use: ["use", "activate", "equip", "wear", "drink", "eat", "apply"],

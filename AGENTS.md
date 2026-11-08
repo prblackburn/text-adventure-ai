@@ -1,5 +1,11 @@
 # Cloudflare Workers
 
+## Shared development process
+
+Read [the shared development process](docs/AGENT_PROCESS.md) and [local adoption notes](docs/PROCESS_ADOPTION.md). Maintain the [changelog](CHANGELOG.md), [developer testing guide](docs/DEV_TOOLS.md), [asset tracker](docs/ASSET_TRACKER.md) and existing request/decision ledger in the same feature PR. Cheats must be explicit, visible and isolated from normal progression; distinguish assisted QA from normal playthroughs.
+
+The shared guide's explicit documentation-only gate applies to prose/agent-instruction changes: review the diff, check formatting/local references and run `git diff --check`. All executable changes retain this repository's required local, build/package, review and delivery gates. Preserve local engine, prototype, save and release policies.
+
 ## Reuse existing modules first
 
 - Before implementing or extending a feature, inspect the relevant existing gameplay modules, shared helpers, engine/platform adapters and presentation components, together with their callers, documentation and tests. Search the affected areas rather than auditing unrelated systems.
@@ -21,11 +27,11 @@ For all limits and quotas, retrieve from the product's `/platform/limits/` page.
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `npx wrangler dev` | Local development |
-| `npx wrangler deploy` | Deploy to Cloudflare |
-| `npx wrangler types` | Generate TypeScript types |
+| Command               | Purpose                   |
+| --------------------- | ------------------------- |
+| `npx wrangler dev`    | Local development         |
+| `npx wrangler deploy` | Deploy to Cloudflare      |
+| `npx wrangler types`  | Generate TypeScript types |
 
 Run `wrangler types` after changing bindings in wrangler.jsonc.
 
